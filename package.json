@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "server": "ts-node --project tsconfig.json server.ts"
   },
   "author": "",
   "license": "ISC",
@@ -14,16 +15,29 @@
   "dependencies": {
     "@heroicons/react": "^2.1.1",
     "@prisma/client": "^5.10.0",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/supabase-js": "^2.49.1",
+    "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
+    "@types/express-session": "^1.18.1",
+    "@types/react-beautiful-dnd": "^13.1.8",
     "autoprefixer": "^10.4.17",
+    "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
     "framer-motion": "^11.0.5",
     "mongodb": "^6.3.0",
     "mongoose": "^8.1.0",
-    "next": "14.1.0",
+    "next": "^14.1.0",
     "next-auth": "^4.24.6",
     "openai": "^4.28.0",
     "postcss": "^8.4.35",
     "react": "^18.2.0",
+    "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^18.2.0",
     "react-markdown": "^9.0.1",
     "tailwindcss": "^3.4.1",
@@ -38,6 +52,7 @@
     "eslint": "^8.56.0",
     "eslint-config-next": "14.1.0",
     "prisma": "^5.10.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }
 }
