@@ -11,8 +11,6 @@ const session = require("express-session");
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-app.set("view engine", "ejs");
-
 app.get("/login", (req, res) => {
     res.render("login");
     const formData = req.body;
