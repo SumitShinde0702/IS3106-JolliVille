@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import AnimatedElement from '../components/AnimatedElement'
 import { getCurrentUser, updateUserPoints } from '../lib/auth'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 interface VillageItem {
   id: string
@@ -14,7 +15,6 @@ interface VillageItem {
 
 interface VillageResources {
   points: number
-  lastUpdate: Date
   plotSize: number
 }
 
@@ -175,7 +175,6 @@ export default function VillagePage() {
   const [selectedCategory, setSelectedCategory] = useState<'houses' | 'tents' | 'decor' | 'grass'>('houses')
   const [resources, setResources] = useState<VillageResources>(() => ({
     points: 0,
-    lastUpdate: new Date(),
     plotSize: 1
   }))
   const [loading, setLoading] = useState(true)
@@ -185,16 +184,29 @@ export default function VillagePage() {
     ).flat()
   )
   const [animatedElements, setAnimatedElements] = useState<AnimatedElementData[]>([])
+  const [layoutId, setLayoutId] = useState<string | null>(null)
+  const supabase = createClientComponentClient()
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
-  // Add new state for instruction popup
-  const [instructionPopup, setInstructionPopup] = useState<InstructionPopup>(() => {
-    const saved = localStorage.getItem('villageInstructions')
-    return saved ? JSON.parse(saved) : { show: true, dontShowAgain: false }
+  // Initialize instruction popup without localStorage
+  const [instructionPopup, setInstructionPopup] = useState<InstructionPopup>({
+    show: true,
+    dontShowAgain: false
   })
+
+  // Load instruction preferences from localStorage on client side
+  useEffect(() => {
+    const saved = localStorage.getItem('villageInstructions')
+    if (saved) {
+      setInstructionPopup(JSON.parse(saved))
+    }
+  }, [])
 
   // Save instruction preferences
   useEffect(() => {
-    localStorage.setItem('villageInstructions', JSON.stringify(instructionPopup))
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('villageInstructions', JSON.stringify(instructionPopup))
+    }
   }, [instructionPopup])
 
   // Load user data and points
@@ -304,46 +316,228 @@ export default function VillagePage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Function to handle plot expansion
-  const handleExpandPlot = async () => {
-    if (resources.plotSize >= MAX_PLOT_SIZE) return
-    
+  // Load village layout on component mount
+  useEffect(() => {
+    loadVillageLayout()
+  }, [])
+
+  const loadVillageLayout = async () => {
     try {
-      const { user, error } = await getCurrentUser()
-      if (error) throw error
-      if (!user) throw new Error('No user found')
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
 
-      const newPoints = Math.max(0, user.points - EXPANSION_COST)
-      const { error: updateError } = await updateUserPoints(user.id, newPoints)
-      if (updateError) throw updateError
+      // Get or create village layout
+      let { data: layout } = await supabase
+        .from('village_layouts')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
 
-      setResources(prev => {
-        const newGridItems = [...gridItems]
-        
-        // Add new empty spaces to the grid
-        const currentSize = prev.plotSize
-        const newSize = currentSize + 1
-        
-        // Update grid items with new empty spaces
-        setGridItems([...newGridItems, ...Array(newSize * newSize - currentSize * currentSize).fill(null)])
-        
-        return {
-          ...prev,
-          plotSize: newSize,
-          points: newPoints
+      if (!layout) {
+        const { data: newLayout, error: createError } = await supabase
+          .from('village_layouts')
+          .insert([{ 
+            user_id: user.id,
+            points: resources.points,
+            plot_size: 1
+          }])
+          .select()
+          .single()
+
+        if (createError) {
+          console.error('Error creating layout:', createError)
+          return
         }
+        layout = newLayout
+      }
+
+      if (!layout) {
+        console.error('Failed to get or create layout')
+        return
+      }
+
+      setLayoutId(layout.id)
+      setResources({
+        points: layout.points || 0,
+        plotSize: layout.plot_size || 1
       })
-    } catch (err) {
-      console.error('Error expanding plot:', err)
+
+      // Load placed items
+      const { data: items, error: itemsError } = await supabase
+        .from('village_items')
+        .select('*')
+        .eq('layout_id', layout.id)
+
+      if (itemsError) {
+        console.error('Error loading items:', itemsError)
+        return
+      }
+
+      if (items) {
+        const newGridItems = Array(GRID_SIZE * GRID_SIZE).fill(null)
+        items.forEach(item => {
+          const itemData = initialItems.find(i => i.id === item.item_id)
+          if (itemData) {
+            newGridItems[item.grid_position] = itemData
+          }
+        })
+        setGridItems(newGridItems)
+      }
+    } catch (error) {
+      console.error('Error loading village layout:', error)
     }
   }
 
+  const saveVillageLayout = async () => {
+    try {
+      // Use getCurrentUser instead of getSession
+      const { user, error } = await getCurrentUser()
+      
+      if (error) {
+        console.error('Auth error:', error)
+        alert('Please log in to save your village')
+        return
+      }
+
+      if (!user) {
+        console.error('No authenticated user found')
+        alert('Please log in to save your village')
+        return
+      }
+
+      console.log('User authenticated:', user.id)
+      console.log('Current layout ID:', layoutId)
+      console.log('Current grid items:', gridItems)
+
+      // If no layoutId, create a new layout
+      let currentLayoutId = layoutId
+      if (!currentLayoutId) {
+        const { data: newLayout, error: createError } = await supabase
+          .from('village_layouts')
+          .insert([{ 
+            user_id: user.id,
+            points: resources.points,
+            plot_size: resources.plotSize,
+            updated_at: new Date().toISOString()
+          }])
+          .select()
+          .single()
+
+        if (createError) {
+          console.error('Error creating layout:', createError)
+          alert('Failed to create village layout')
+          return
+        }
+        if (!newLayout) {
+          console.error('No layout created')
+          alert('Failed to create village layout')
+          return
+        }
+        currentLayoutId = newLayout.id
+        setLayoutId(newLayout.id)
+        console.log('Created new layout with ID:', currentLayoutId)
+      }
+
+      // Update existing layout
+      const { error: updateError } = await supabase
+        .from('village_layouts')
+        .update({
+          points: resources.points,
+          plot_size: resources.plotSize,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentLayoutId)
+        .eq('user_id', user.id)
+
+      if (updateError) {
+        console.error('Error updating layout:', updateError)
+        alert('Failed to update village layout')
+        return
+      }
+      console.log('Updated existing layout:', currentLayoutId)
+
+      // Delete existing items
+      const { error: deleteError } = await supabase
+        .from('village_items')
+        .delete()
+        .eq('layout_id', currentLayoutId)
+
+      if (deleteError) {
+        console.error('Error deleting items:', deleteError)
+        alert('Failed to update village items')
+        return
+      }
+      console.log('Deleted existing items for layout:', currentLayoutId)
+
+      // Insert new items
+      const items = gridItems
+        .map((item, index) => {
+          if (!item || !currentLayoutId) return null
+          return {
+            layout_id: currentLayoutId,
+            item_id: item.id,
+            grid_position: index
+          }
+        })
+        .filter(Boolean)
+
+      console.log('Saving items:', items)
+
+      if (items.length > 0) {
+        const { data: insertedItems, error: insertError } = await supabase
+          .from('village_items')
+          .insert(items)
+          .select()
+
+        if (insertError) {
+          console.error('Error inserting items:', insertError)
+          alert('Failed to save village items')
+          return
+        }
+        console.log('Successfully saved items:', insertedItems)
+      }
+
+      setHasUnsavedChanges(false)
+      console.log('Save completed successfully')
+      alert('Village saved successfully!')
+    } catch (error) {
+      console.error('Error saving village layout:', error)
+      alert('An error occurred while saving your village')
+    }
+  }
+
+  const handleSaveVillage = async () => {
+    try {
+      const { user, error } = await getCurrentUser()
+      if (error || !user) {
+        alert('Please log in to save your village')
+        return
+      }
+      await saveVillageLayout()
+    } catch (error) {
+      console.error('Error in handleSaveVillage:', error)
+      alert('Failed to save village')
+    }
+  }
+
+  // Function to handle plot expansion
+  const handleExpandPlot = async () => {
+    if (resources.plotSize >= MAX_PLOT_SIZE || resources.points < EXPANSION_COST) return
+
+    setResources(prev => ({
+      points: prev.points - EXPANSION_COST,
+      plotSize: prev.plotSize + 1
+    }))
+
+    setHasUnsavedChanges(true)
+  }
+
   const handleDragStart = (e: React.DragEvent, item: VillageItem, gridIndex?: number) => {
+    e.dataTransfer.effectAllowed = 'move'
     setDraggedItem(item)
     setIsDraggingFromGrid(gridIndex !== undefined)
     if (gridIndex !== undefined) {
       setDragSourceIndex(gridIndex)
-      e.dataTransfer.setData('sourceIndex', gridIndex.toString())
     }
   }
 
@@ -358,7 +552,7 @@ export default function VillagePage() {
     e.currentTarget.classList.remove('bg-red-50')
   }
 
-  const handleSidebarDrop = (e: React.DragEvent) => {
+  const handleSidebarDrop = async (e: React.DragEvent) => {
     e.preventDefault()
     e.currentTarget.classList.remove('bg-red-50')
 
@@ -370,6 +564,9 @@ export default function VillagePage() {
       const newGridItems = [...gridItems]
       newGridItems[dragSourceIndex] = null
       setGridItems(newGridItems)
+
+      // Set unsaved changes flag
+      setHasUnsavedChanges(true)
     }
 
     setIsDraggingFromGrid(false)
@@ -385,39 +582,34 @@ export default function VillagePage() {
     e.currentTarget.classList.remove('bg-purple-100')
   }
 
-  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+  const handleDrop = async (e: React.DragEvent, index: number) => {
     e.preventDefault()
-    e.currentTarget.classList.remove('bg-purple-100')
-
+    e.currentTarget.classList.remove('brightness-110')
+    
     if (!draggedItem) return
-
-    const sourceIndex = e.dataTransfer.getData('sourceIndex')
-    const newGridItems = [...gridItems]
-
-    if (sourceIndex) {
-      // Moving within the grid
-      const sourceIdx = parseInt(sourceIndex)
-      if (sourceIdx !== targetIndex && !gridItems[targetIndex]) {
-        newGridItems[targetIndex] = gridItems[sourceIdx]
-        newGridItems[sourceIdx] = null
-        setGridItems(newGridItems)
-      }
+    
+    // Remove item from source position if it was already on the grid
+    if (isDraggingFromGrid && dragSourceIndex !== null) {
+      const newGridItems = [...gridItems]
+      newGridItems[dragSourceIndex] = null
+      setGridItems(newGridItems)
     } else {
-      // Dropping from sidebar to grid
-      if (!gridItems[targetIndex]) {
-        newGridItems[targetIndex] = draggedItem
-        setGridItems(newGridItems)
-        
-        // Remove from available items
-        const newAvailableItems = availableItems.filter(item => item.id !== draggedItem.id)
-        setAvailableItems(newAvailableItems)
-      }
+      // Remove from available items if coming from sidebar
+      setAvailableItems(availableItems.filter(i => i.id !== draggedItem.id))
     }
 
+    // Place item in new position
+    const newGridItems = [...gridItems]
+    newGridItems[index] = draggedItem
+    setGridItems(newGridItems)
+
+    // Set unsaved changes flag
+    setHasUnsavedChanges(true)
+    
     // Reset drag state
     setDraggedItem(null)
-    setIsDraggingFromGrid(false)
     setDragSourceIndex(null)
+    setIsDraggingFromGrid(false)
   }
 
   // Get items for selected category
@@ -432,130 +624,105 @@ export default function VillagePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 py-8">
-      {/* Instruction Popup */}
-      {instructionPopup.show && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md">
-            <h3 className="text-xl font-bold mb-4">How to Build Your Village</h3>
-            <p className="mb-4">
-              1. Drag items from the sidebar to place them in your village plot<br/>
-              2. To remove an item, drag it back to the sidebar<br/>
-              3. Expand your plot using points to build a larger village
-            </p>
-            <div className="flex items-center mb-4">
-              <input
-                type="checkbox"
-                id="dontShowAgain"
-                checked={instructionPopup.dontShowAgain}
-                onChange={(e) => setInstructionPopup(prev => ({
-                  ...prev,
-                  dontShowAgain: e.target.checked
-                }))}
-                className="mr-2"
-              />
-              <label htmlFor="dontShowAgain">Don't show this again</label>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex">
+      {/* Sidebar with Available Items */}
+      <div 
+        className="w-80 bg-white/80 backdrop-blur-sm border-r border-gray-200 shadow-lg p-4 overflow-y-auto"
+        onDragOver={handleSidebarDragOver}
+        onDragLeave={handleSidebarDragLeave}
+        onDrop={handleSidebarDrop}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-600">
+            Available Items
+          </h2>
+          {hasUnsavedChanges && (
             <button
-              onClick={() => setInstructionPopup(prev => ({ ...prev, show: false }))}
-              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors"
+              onClick={handleSaveVillage}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors"
             >
-              Got it!
+              Save Village
             </button>
-          </div>
+          )}
         </div>
-      )}
-
-      <div className="container mx-auto px-4">
-        <h1 className="text-4xl font-bold mb-8 text-center text-gradient">Build Your Village</h1>
         
-        <div className="flex gap-8">
-          {/* Available Items Sidebar */}
-          <div 
-            className="w-64 flex-shrink-0 transition-colors duration-200"
-            onDragOver={handleSidebarDragOver}
-            onDragLeave={handleSidebarDragLeave}
-            onDrop={handleSidebarDrop}
-          >
-            <h2 className="text-xl font-semibold mb-4 text-gray-900">Available Items</h2>
-            
-            {/* Category Tabs */}
-            <div className="flex space-x-1 mb-4">
-              <button
-                onClick={() => setSelectedCategory('houses')}
-                className={`flex-1 py-2 px-3 rounded-t-lg text-sm font-medium transition-colors ${
-                  selectedCategory === 'houses'
-                    ? 'bg-purple-100 text-purple-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Houses
-              </button>
-              <button
-                onClick={() => setSelectedCategory('tents')}
-                className={`flex-1 py-2 px-3 rounded-t-lg text-sm font-medium transition-colors ${
-                  selectedCategory === 'tents'
-                    ? 'bg-purple-100 text-purple-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Tents
-              </button>
-              <button
-                onClick={() => setSelectedCategory('decor')}
-                className={`flex-1 py-2 px-3 rounded-t-lg text-sm font-medium transition-colors ${
-                  selectedCategory === 'decor'
-                    ? 'bg-purple-100 text-purple-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Decor
-              </button>
-              <button
-                onClick={() => setSelectedCategory('grass')}
-                className={`flex-1 py-2 px-3 rounded-t-lg text-sm font-medium transition-colors ${
-                  selectedCategory === 'grass'
-                    ? 'bg-purple-100 text-purple-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Grass
-              </button>
-            </div>
+        {/* Category Tabs */}
+        <div className="flex flex-wrap gap-1 mb-4">
+          {(['houses', 'tents', 'decor', 'grass'] as const).map((category) => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                selectedCategory === category
+                  ? 'bg-pink-100 text-pink-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {category.charAt(0).toUpperCase() + category.slice(1)}
+            </button>
+          ))}
+        </div>
 
-            {/* Items Grid */}
-            <div className="grid grid-cols-2 gap-2">
-              {categoryItems.map((item) => (
-                <div
-                  key={item.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, item)}
-                  className="bg-white p-2 rounded-lg shadow-md cursor-move hover:shadow-lg transition-shadow"
-                >
-                  <div className="relative w-full h-24 flex items-center justify-center">
-                    <div className={`relative w-full h-full ${getItemSizeClass(item.id)}`}>
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        fill
-                        sizes="(max-width: 768px) 100px, 200px"
-                        className="object-contain"
-                        priority={item.category === 'houses'}
-                      />
-                    </div>
-                  </div>
-                  <p className="text-center mt-1 text-sm">{item.name}</p>
+        {/* Items Grid */}
+        <div className="grid grid-cols-2 gap-2">
+          {categoryItems.map((item) => (
+            <div
+              key={item.id}
+              draggable
+              onDragStart={(e) => handleDragStart(e, item)}
+              className="bg-white p-2 rounded-lg shadow-sm cursor-move hover:shadow-md transition-shadow"
+            >
+              <div className="relative w-full h-24 flex items-center justify-center">
+                <div className={`relative w-full h-full ${getItemSizeClass(item.id)}`}>
+                  <Image
+                    src={item.image}
+                    alt={item.name}
+                    fill
+                    sizes="(max-width: 768px) 100px, 200px"
+                    className="object-contain"
+                    priority={item.category === 'houses'}
+                  />
                 </div>
-              ))}
+              </div>
+              <p className="text-center mt-1 text-sm">{item.name}</p>
             </div>
-          </div>
+          ))}
+        </div>
+      </div>
 
-          {/* Main Content */}
-          <div className="flex-1">
-            <h2 className="text-4xl font-bold mb-4 text-gradient">Your Village</h2>
+      {/* Main Content Area */}
+      <div className="flex-1 p-4 flex justify-center items-center">
+        <div className="w-full max-w-4xl transform scale-90">
+          {/* Village Grid */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-600">
+                Your Village Plot
+              </h2>
+              <div className="flex items-center gap-4">
+                <div className="bg-white px-4 py-2 rounded-lg shadow-sm">
+                  <span className="text-gray-600 mr-2">Points:</span>
+                  <span className="font-semibold text-pink-600">{resources.points}</span>
+                </div>
+                <button
+                  onClick={handleExpandPlot}
+                  disabled={resources.plotSize >= MAX_PLOT_SIZE || resources.points < EXPANSION_COST}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                    resources.plotSize >= MAX_PLOT_SIZE || resources.points < EXPANSION_COST
+                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      : 'bg-pink-600 text-white hover:bg-pink-700'
+                  }`}
+                >
+                  Expand Plot ({EXPANSION_COST} points)
+                </button>
+              </div>
+            </div>
+
             <div className="relative">
-              <div className={`grid gap-0 bg-gray-800 p-1 rounded-lg aspect-square`} 
-                   style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}>
+              <div 
+                className="grid gap-0 bg-gray-800 p-1 rounded-lg aspect-square w-[800px] mx-auto" 
+                style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}
+              >
                 {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, index) => (
                   <div
                     key={index}
@@ -627,6 +794,39 @@ export default function VillagePage() {
           </div>
         </div>
       </div>
+
+      {/* Instruction Popup */}
+      {instructionPopup.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md">
+            <h3 className="text-xl font-bold mb-4">How to Build Your Village</h3>
+            <p className="mb-4">
+              1. Drag items from the sidebar to place them in your village plot<br/>
+              2. To remove an item, drag it back to the sidebar<br/>
+              3. Expand your plot using points to build a larger village
+            </p>
+            <div className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                id="dontShowAgain"
+                checked={instructionPopup.dontShowAgain}
+                onChange={(e) => setInstructionPopup(prev => ({
+                  ...prev,
+                  dontShowAgain: e.target.checked
+                }))}
+                className="mr-2"
+              />
+              <label htmlFor="dontShowAgain">Don't show this again</label>
+            </div>
+            <button
+              onClick={() => setInstructionPopup(prev => ({ ...prev, show: false }))}
+              className="bg-pink-600 text-white px-4 py-2 rounded hover:bg-pink-700 transition-colors"
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
 
       <style jsx global>{`
         .text-gradient {
