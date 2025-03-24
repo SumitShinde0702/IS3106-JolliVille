@@ -33,18 +33,24 @@ JolliVille is an interactive journaling and wellness platform designed for young
    ```bash
    cp .env.example .env.local
    ```
-4. Run the development server:
+4. Run the frontend:
    ```bash
    npm run dev
+   ```
+5. Run the backend server:
+   ```bash
+   npm run server
    ```
 
 ## Environment Variables
 
 Create a `.env.local` file with the following variables:
 ```
-MONGODB_URI=your_mongodb_uri
-NEXTAUTH_SECRET=your_nextauth_secret
-OPENAI_API_KEY=your_openai_api_key
+NEXT_PUBLIC_SUPABASE_URL=supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=supabase_anon_key
+
+AZURE_OPENAI_API_KEY=openai_api_key
+AZURE_OPENAI_ENDPOINT=openai_endpoint
 ```
 
 ## Contributing
