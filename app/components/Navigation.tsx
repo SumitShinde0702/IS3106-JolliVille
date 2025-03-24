@@ -26,7 +26,7 @@ export default function Navigation() {
                 <Link href="/village" className="px-3 py-2 hover:text-pink-600 transition-colors">Village</Link>
                 <Link href="/journal" className="px-3 py-2 hover:text-pink-600 transition-colors">Journal</Link>
                 <Link href="/wellness" className="px-3 py-2 hover:text-pink-600 transition-colors">Wellness</Link>
-                <Link href="/avatar" className="px-3 py-2 hover:text-pink-600 transition-colors">Avatar</Link>
+                <Link href="/chatbot" className="px-3 py-2 hover:text-pink-600 transition-colors">Chat</Link>
                 <Link href="/profile" className="px-3 py-2 hover:text-pink-600 transition-colors">Profile</Link>
                 <button
                   onClick={signOut}
