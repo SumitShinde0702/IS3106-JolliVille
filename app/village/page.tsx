@@ -10,7 +10,7 @@ interface VillageItem {
   id: string
   name: string
   image: string
-  category: 'houses' | 'tents' | 'decor'
+  category: 'houses' | 'tents' | 'decor' | 'archer-towers'
   isStarter?: boolean
 }
 
@@ -20,36 +20,115 @@ interface VillageResources {
 }
 
 const initialItems: VillageItem[] = [
-  // Houses
-  { id: 'house-1', name: 'House 1', image: '/village-items/houses/1.png', category: 'houses', isStarter: true },
-  { id: 'house-2', name: 'House 2', image: '/village-items/houses/2.png', category: 'houses', isStarter: true },
-  { id: 'house-3', name: 'House 3', image: '/village-items/houses/3.png', category: 'houses' },
-  { id: 'house-4', name: 'House 4', image: '/village-items/houses/4.png', category: 'houses' },
+  // Houses - Based on visual complexity and luxury
+  { id: 'house-1', name: 'Noble Manor', image: '/village-items/houses/1.png', category: 'houses', isStarter: true },
+  { id: 'house-2', name: 'Cozy Cabin', image: '/village-items/houses/2.png', category: 'houses', isStarter: true },
+  { id: 'house-3', name: 'Modest House', image: '/village-items/houses/3.png', category: 'houses' },
+  { id: 'house-4', name: 'Charming Home', image: '/village-items/houses/4.png', category: 'houses' },
+  { id: 'house-5', name: 'Elegant Manor', image: '/village-items/houses/5.png', category: 'houses' },
+  { id: 'house-6', name: 'Grand Estate', image: '/village-items/houses/6.png', category: 'houses' },
+  { id: 'house-7', name: 'Royal Palace', image: '/village-items/houses/7.png', category: 'houses' },
+  { id: 'house-8', name: 'Simple Cottage', image: '/village-items/houses/8.png', category: 'houses' },
+  { id: 'house-9', name: 'Imperial Castle', image: '/village-items/houses/9.png', category: 'houses' },
+  { id: 'house-10', name: 'Royal Castle', image: '/village-items/houses/10.png', category: 'houses' },
+  { id: 'house-11', name: 'Imperial Palace', image: '/village-items/houses/11.png', category: 'houses' },
+  { id: 'house-12', name: 'Royal Fortress', image: '/village-items/houses/12.png', category: 'houses' },
+  { id: 'house-13', name: 'Mystical Castle', image: '/village-items/houses/13.png', category: 'houses' },
+  { id: 'house-14', name: 'Enchanted Palace', image: '/village-items/houses/14.png', category: 'houses' },
+  { id: 'house-15', name: 'Mystical Manor', image: '/village-items/houses/15.png', category: 'houses' },
+  { id: 'house-16', name: 'Legendary Castle', image: '/village-items/houses/16.png', category: 'houses' },
+  { id: 'house-17', name: 'Ancient Citadel', image: '/village-items/houses/17.png', category: 'houses' },
+  { id: 'house-18', name: 'Divine Palace', image: '/village-items/houses/18.png', category: 'houses' },
+  { id: 'house-19', name: 'Celestial Castle', image: '/village-items/houses/19.png', category: 'houses' },
+  { id: 'house-20', name: 'Ethereal Mansion', image: '/village-items/houses/20.png', category: 'houses' },
+  { id: 'house-21', name: 'Mythical Palace', image: '/village-items/houses/21.png', category: 'houses' },
+  { id: 'house-22', name: 'Legendary Citadel', image: '/village-items/houses/22.png', category: 'houses' },
+  { id: 'house-23', name: 'Celestial Palace', image: '/village-items/houses/23.png', category: 'houses' },
+  { id: 'house-24', name: 'Ethereal Castle', image: '/village-items/houses/24.png', category: 'houses' },
+  { id: 'house-25', name: 'Mythical Fortress', image: '/village-items/houses/25.png', category: 'houses' },
+  { id: 'house-26', name: 'Divine Citadel', image: '/village-items/houses/26.png', category: 'houses' },
+  { id: 'house-27', name: 'Legendary Palace', image: '/village-items/houses/27.png', category: 'houses' },
   
-  // Tents
-  { id: 'tent-1', name: 'Tent 1', image: '/village-items/tents/1.png', category: 'tents', isStarter: true },
-  { id: 'tent-2', name: 'Tent 2', image: '/village-items/tents/2.png', category: 'tents' },
-  { id: 'tent-3', name: 'Tent 3', image: '/village-items/tents/3.png', category: 'tents' },
-  { id: 'tent-4', name: 'Tent 4', image: '/village-items/tents/4.png', category: 'tents' },
+  // Tents - Based on size and complexity
+  { id: 'tent-1', name: 'Basic Tent', image: '/village-items/tents/1.png', category: 'tents', isStarter: true },
+  { id: 'tent-2', name: 'Comfortable Tent', image: '/village-items/tents/2.png', category: 'tents', isStarter: true },
+  { id: 'tent-3', name: 'Deluxe Tent', image: '/village-items/tents/3.png', category: 'tents' },
+  { id: 'tent-4', name: 'Luxury Tent', image: '/village-items/tents/4.png', category: 'tents' },
+  { id: 'tent-5', name: 'Premium Tent', image: '/village-items/tents/5.png', category: 'tents' },
+  { id: 'tent-6', name: 'Elite Tent', image: '/village-items/tents/6.png', category: 'tents' },
   
-  // Decor
-  { id: 'decor-1', name: 'Decor 1', image: '/village-items/decor/1.png', category: 'decor', isStarter: true },
-  { id: 'decor-2', name: 'Decor 2', image: '/village-items/decor/2.png', category: 'decor' },
-  { id: 'decor-3', name: 'Decor 3', image: '/village-items/decor/3.png', category: 'decor' },
-  { id: 'decor-4', name: 'Decor 4', image: '/village-items/decor/4.png', category: 'decor' },
-  { id: 'decor-5', name: 'Decor 5', image: '/village-items/decor/5.png', category: 'decor' },
-  { id: 'decor-6', name: 'Decor 6', image: '/village-items/decor/6.png', category: 'decor' },
-  { id: 'decor-7', name: 'Decor 7', image: '/village-items/decor/7.png', category: 'decor' },
-  { id: 'decor-8', name: 'Decor 8', image: '/village-items/decor/8.png', category: 'decor' },
-  { id: 'decor-9', name: 'Decor 9', image: '/village-items/decor/9.png', category: 'decor' },
-  { id: 'decor-10', name: 'Decor 10', image: '/village-items/decor/10.png', category: 'decor' },
-  { id: 'decor-11', name: 'Decor 11', image: '/village-items/decor/11.png', category: 'decor' },
-  { id: 'decor-12', name: 'Decor 12', image: '/village-items/decor/12.png', category: 'decor' },
-  { id: 'decor-13', name: 'Decor 13', image: '/village-items/decor/13.png', category: 'decor' },
-  { id: 'decor-14', name: 'Decor 14', image: '/village-items/decor/14.png', category: 'decor' },
-  { id: 'decor-15', name: 'Decor 15', image: '/village-items/decor/15.png', category: 'decor' },
-  { id: 'decor-16', name: 'Decor 16', image: '/village-items/decor/16.png', category: 'decor' },
-  { id: 'decor-17', name: 'Decor 17', image: '/village-items/decor/17.png', category: 'decor' }
+  // Archer Towers - Based on defensive capabilities
+  { id: 'tower-1', name: 'Basic Tower', image: '/village-items/archer-towers/1.png', category: 'archer-towers', isStarter: true },
+  { id: 'tower-2', name: 'Improved Tower', image: '/village-items/archer-towers/2.png', category: 'archer-towers' },
+  { id: 'tower-4', name: 'Advanced Tower', image: '/village-items/archer-towers/4.png', category: 'archer-towers' },
+  { id: 'tower-7', name: 'Elite Tower', image: '/village-items/archer-towers/7.png', category: 'archer-towers' },
+  
+  // Decor Items - Based on visual complexity and rarity
+  { id: 'decor-1', name: 'Simple Ornament', image: '/village-items/decor/decor_1.png', category: 'decor', isStarter: true },
+  { id: 'decor-2', name: 'Elegant Ornament', image: '/village-items/decor/decor_2.png', category: 'decor' },
+  { id: 'decor-3', name: 'Charming Decoration', image: '/village-items/decor/decor_3.png', category: 'decor' },
+  { id: 'decor-4', name: 'Lovely Ornament', image: '/village-items/decor/decor_4.png', category: 'decor' },
+  { id: 'decor-5', name: 'Fancy Decoration', image: '/village-items/decor/decor_5.png', category: 'decor' },
+  { id: 'decor-6', name: 'Beautiful Ornament', image: '/village-items/decor/decor_6.png', category: 'decor' },
+  { id: 'decor-7', name: 'Exquisite Decoration', image: '/village-items/decor/decor_7.png', category: 'decor' },
+  { id: 'decor-8', name: 'Luxurious Ornament', image: '/village-items/decor/decor_8.png', category: 'decor' },
+  { id: 'decor-9', name: 'Premium Decoration', image: '/village-items/decor/decor_9.png', category: 'decor' },
+  { id: 'decor-10', name: 'Majestic Ornament', image: '/village-items/decor/decor_10.png', category: 'decor' },
+  { id: 'decor-11', name: 'Royal Decoration', image: '/village-items/decor/decor_11.png', category: 'decor' },
+  { id: 'decor-12', name: 'Imperial Ornament', image: '/village-items/decor/decor_12.png', category: 'decor' },
+  { id: 'decor-13', name: 'Mystical Decoration', image: '/village-items/decor/decor_13.png', category: 'decor' },
+  { id: 'decor-14', name: 'Enchanted Ornament', image: '/village-items/decor/decor_14.png', category: 'decor' },
+  { id: 'decor-15', name: 'Legendary Decoration', image: '/village-items/decor/decor_15.png', category: 'decor' },
+  { id: 'decor-16', name: 'Divine Ornament', image: '/village-items/decor/decor_16.png', category: 'decor' },
+  { id: 'decor-17', name: 'Celestial Decoration', image: '/village-items/decor/decor_17.png', category: 'decor' },
+  { id: 'decor-18', name: 'Ethereal Ornament', image: '/village-items/decor/decor_18.png', category: 'decor' },
+  { id: 'decor-19', name: 'Mystical Ornament', image: '/village-items/decor/decor_19.png', category: 'decor' },
+  { id: 'decor-20', name: 'Enchanted Decoration', image: '/village-items/decor/decor_20.png', category: 'decor' },
+  { id: 'decor-21', name: 'Legendary Ornament', image: '/village-items/decor/decor_21.png', category: 'decor' },
+  
+  // Trees - Based on size and visual complexity
+  { id: 'tree-1', name: 'Majestic Tree', image: '/village-items/decor/tree_1.png', category: 'decor' },
+  { id: 'tree-2', name: 'Ancient Tree', image: '/village-items/decor/tree_2.png', category: 'decor' },
+  { id: 'tree-3', name: 'Mystical Tree', image: '/village-items/decor/tree_3.png', category: 'decor' },
+  { id: 'tree-4', name: 'Enchanted Tree', image: '/village-items/decor/tree_4.png', category: 'decor' },
+  { id: 'tree-5', name: 'Magical Tree', image: '/village-items/decor/tree_5.png', category: 'decor' },
+  { id: 'tree-6', name: 'Sacred Tree', image: '/village-items/decor/tree_6.png', category: 'decor' },
+  { id: 'tree-7', name: 'Divine Tree', image: '/village-items/decor/tree_7.png', category: 'decor' },
+  { id: 'tree-8', name: 'Celestial Tree', image: '/village-items/decor/tree_8.png', category: 'decor' },
+  { id: 'tree-9', name: 'Ethereal Tree', image: '/village-items/decor/tree_9.png', category: 'decor' },
+  { id: 'tree-10', name: 'Mythical Tree', image: '/village-items/decor/tree_10.png', category: 'decor' },
+  { id: 'tree-11', name: 'Legendary Tree', image: '/village-items/decor/tree_11.png', category: 'decor' },
+  { id: 'tree-12', name: 'Primordial Tree', image: '/village-items/decor/tree_12.png', category: 'decor' },
+  { id: 'tree-13', name: 'World Tree', image: '/village-items/decor/tree_13.png', category: 'decor' },
+  { id: 'tree-14', name: 'Cosmic Tree', image: '/village-items/decor/tree_14.png', category: 'decor' },
+  
+  // Stones - Based on size and visual complexity
+  { id: 'stone-1', name: 'Simple Stone', image: '/village-items/decor/stones_1.png', category: 'decor' },
+  { id: 'stone-2', name: 'Mystical Stone', image: '/village-items/decor/stones_2.png', category: 'decor' },
+  { id: 'stone-3', name: 'Ancient Stone', image: '/village-items/decor/stones_3.png', category: 'decor' },
+  { id: 'stone-4', name: 'Magical Stone', image: '/village-items/decor/stones_4.png', category: 'decor' },
+  { id: 'stone-5', name: 'Enchanted Stone', image: '/village-items/decor/stones_5.png', category: 'decor' },
+  { id: 'stone-6', name: 'Legendary Stone', image: '/village-items/decor/stones_6.png', category: 'decor' },
+  { id: 'stone-7', name: 'Divine Stone', image: '/village-items/decor/stones_7.png', category: 'decor' },
+  
+  // Greenery - Based on visual complexity and rarity
+  { id: 'greenery-1', name: 'Simple Plant', image: '/village-items/decor/greenery_1.png', category: 'decor' },
+  { id: 'greenery-2', name: 'Vibrant Bush', image: '/village-items/decor/greenery_2.png', category: 'decor' },
+  { id: 'greenery-3', name: 'Exotic Plant', image: '/village-items/decor/greenery_3.png', category: 'decor' },
+  { id: 'greenery-4', name: 'Mystical Plant', image: '/village-items/decor/greenery_4.png', category: 'decor' },
+  { id: 'greenery-5', name: 'Enchanted Plant', image: '/village-items/decor/greenery_5.png', category: 'decor' },
+  { id: 'greenery-6', name: 'Rare Plant', image: '/village-items/decor/greenery_6.png', category: 'decor' },
+  { id: 'greenery-7', name: 'Exotic Bush', image: '/village-items/decor/greenery_7.png', category: 'decor' },
+  { id: 'greenery-8', name: 'Magical Shrub', image: '/village-items/decor/greenery_8.png', category: 'decor' },
+  { id: 'greenery-9', name: 'Enchanted Bush', image: '/village-items/decor/greenery_9.png', category: 'decor' },
+  { id: 'greenery-10', name: 'Mystical Plant', image: '/village-items/decor/greenery_10.png', category: 'decor' },
+  { id: 'greenery-11', name: 'Sacred Bush', image: '/village-items/decor/greenery_11.png', category: 'decor' },
+  { id: 'greenery-12', name: 'Divine Plant', image: '/village-items/decor/greenery_12.png', category: 'decor' },
+  { id: 'greenery-13', name: 'Celestial Shrub', image: '/village-items/decor/greenery_13.png', category: 'decor' },
+  { id: 'greenery-14', name: 'Ethereal Plant', image: '/village-items/decor/greenery_14.png', category: 'decor' },
+  
+  // Lake - Special feature
+  { id: 'lake-1', name: 'Serene Lake', image: '/village-items/decor/lake.png', category: 'decor' }
 ]
 
 const GRID_SIZE = 8 // 8x8 grid
@@ -175,7 +254,7 @@ export default function VillagePage() {
   const [draggedItem, setDraggedItem] = useState<VillageItem | null>(null)
   const [isDraggingFromGrid, setIsDraggingFromGrid] = useState(false)
   const [dragSourceIndex, setDragSourceIndex] = useState<number | null>(null)
-  const [selectedCategory, setSelectedCategory] = useState<'houses' | 'tents' | 'decor'>('houses')
+  const [selectedCategory, setSelectedCategory] = useState<'houses' | 'tents' | 'decor' | 'archer-towers'>('houses')
   const [resources, setResources] = useState<VillageResources>(() => ({
     points: 0,
     plotSize: 1
@@ -395,14 +474,51 @@ export default function VillagePage() {
         }
       }
 
-      // Now get or create village layout - explicitly specify columns
-      let { data: layout, error: layoutError } = await supabase
+      // Get all layouts for the user, ordered by updated_at
+      let { data: layouts, error: layoutError } = await supabase
         .from('village_layouts')
         .select('id, user_id, plot_size, grid_size, created_at, updated_at')
         .eq('user_id', userId)
-        .single()
+        .order('updated_at', { ascending: false })
 
       if (layoutError) {
+        console.error('Error fetching layouts:', layoutError)
+        return
+      }
+
+      let layout
+      
+      // If there are multiple layouts, use the most recent one and clean up others
+      if (layouts && layouts.length > 1) {
+        console.log('Found multiple layouts, cleaning up...')
+        layout = layouts[0] // Most recent layout
+        
+        // Delete all other layouts
+        const oldLayoutIds = layouts.slice(1).map(l => l.id)
+        const { error: deleteError } = await supabase
+          .from('village_layouts')
+          .delete()
+          .in('id', oldLayoutIds)
+        
+        if (deleteError) {
+          console.error('Error deleting old layouts:', deleteError)
+        }
+        
+        // Also delete village items associated with old layouts
+        const { error: deleteItemsError } = await supabase
+          .from(' village_items')
+          .delete()
+          .in('layout_id', oldLayoutIds)
+        
+        if (deleteItemsError) {
+          console.error('Error deleting old items:', deleteItemsError)
+        }
+      } else if (layouts && layouts.length === 1) {
+        layout = layouts[0]
+      }
+
+      // If no layout exists, create a new one
+      if (!layout) {
         console.log('No existing layout found, creating new one for user:', userId)
         const { data: newLayout, error: createError } = await supabase
           .from('village_layouts')
@@ -764,8 +880,7 @@ export default function VillagePage() {
     if (isDraggingFromGrid && dragSourceIndex !== null) {
       // Remove item from source position
       newGridItems[dragSourceIndex] = null
-      // Add the item back to available items
-      setOwnedItems(prev => [...prev, draggedItem])
+      // Do NOT add the item back to available items when moving within grid
     } else {
       // If we're dragging from the sidebar (placing a new item)
       // Remove from available items
@@ -890,7 +1005,7 @@ export default function VillagePage() {
         
         {/* Category Tabs */}
         <div className="flex flex-wrap gap-1 mb-4">
-          {(['houses', 'tents', 'decor'] as const).map((category) => (
+          {(['houses', 'tents', 'decor', 'archer-towers'] as const).map((category) => (
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
@@ -900,7 +1015,7 @@ export default function VillagePage() {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              {category.charAt(0).toUpperCase() + category.slice(1)}
+              {category === 'archer-towers' ? 'Towers' : category.charAt(0).toUpperCase() + category.slice(1)}
             </button>
           ))}
         </div>
