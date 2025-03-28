@@ -1,0 +1,33 @@
+.animated-element {
+  position: absolute;
+  animation: move var(--duration) cubic-bezier(0.4, 0, 0.2, 1) var(--delay) forwards;
+}
+
+@keyframes move {
+  0% {
+    left: var(--start-x);
+    top: var(--start-y);
+  }
+  50% {
+    left: var(--control-x, calc(var(--start-x) + (var(--end-x) - var(--start-x)) * 0.5));
+    top: var(--control-y, calc(var(--start-y) + (var(--end-y) - var(--start-y)) * 0.5));
+  }
+  100% {
+    left: var(--end-x);
+    top: var(--end-y);
+  }
+}
+
+.sprite-animation {
+  transition: object-position 0.05s steps(1);
+}
+
+.animated-element[data-moving="true"] {
+  animation: move var(--duration) cubic-bezier(0.4, 0, 0.2, 1) var(--delay) forwards,
+             bounce 0.5s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
