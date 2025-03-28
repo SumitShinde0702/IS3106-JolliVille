@@ -1,7 +1,1 @@
-{
-  "/village/page": "app/village/page.js",
-  "/profile/page": "app/profile/page.js",
-  "/register/page": "app/register/page.js",
-  "/login/page": "app/login/page.js",
-  "/chatbot/page": "app/chatbot/page.js"
-}
+{}

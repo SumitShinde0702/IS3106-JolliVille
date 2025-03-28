@@ -149,7 +149,7 @@ export default function ChatBot() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!message.trim() || !currentConversationId) return
+    if (!message.trim() || !currentConversationId || !user) return
 
     const newMessage: Message = { role: 'user', content: message }
     setMessages(prev => [...prev, newMessage])
@@ -163,7 +163,8 @@ export default function ChatBot() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [...messages, newMessage]
+          messages: [...messages, newMessage],
+          userId: user.id
         })
       })
 
