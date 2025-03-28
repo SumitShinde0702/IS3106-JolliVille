@@ -175,18 +175,11 @@ const getTilePath = (tileNumber: number) => {
 }
 
 // Function to generate random position within grid bounds
-const getRandomPosition = (isX: boolean) => {
-  // Generate positions more evenly across the grid
-  const min = 10 // Minimum distance from edges
-  const max = 90 // Maximum distance from edges
-  const step = 20 // Divide the grid into sections
-  
-  // Get a random section
-  const section = Math.floor(Math.random() * (max - min) / step)
-  // Get a random position within that section
-  const offset = Math.random() * step
-  
-  return min + (section * step) + offset
+const getRandomPosition = (isX: boolean, gridSize: number) => {
+  const min = 0 // Start from edge
+  const max = gridSize - 1 // Use full grid size
+  const position = Math.floor(min + Math.random() * (max - min))
+  return position
 }
 
 // Function to generate random duration with natural variation
@@ -214,15 +207,8 @@ const getControlPoint = (startX: number, startY: number, endX: number, endY: num
 
 interface AnimatedElementData {
   id: string
-  type: 'person' | 'butterfly' | 'wolf'
-  startX: number
-  startY: number
-  endX: number
-  endY: number
-  duration: number
-  delay: number
-  controlX?: number
-  controlY?: number
+  type: 'butterfly' | 'wolf' | 'blue-man' | 'cow-woman' | 'red-woman'
+  waypoints: { x: number; y: number; idleTime?: number }[]
 }
 
 // Function to get item size class
@@ -360,89 +346,91 @@ export default function VillagePage() {
   }
 
   useEffect(() => {
-    const updateAnimations = () => {
-      setAnimatedElements(prev => prev.map(element => {
-        const newEndX = getRandomPosition(true)
-        const newEndY = getRandomPosition(false)
-        const control = getControlPoint(element.endX, element.endY, newEndX, newEndY)
-        
-        return {
-          ...element,
-          startX: element.endX,
-          startY: element.endY,
-          endX: newEndX,
-          endY: newEndY,
-          duration: getRandomDuration(),
-          delay: 0, // No delay between movements
-          controlX: control.x,
-          controlY: control.y
-        }
-      }))
+    // Helper function to generate waypoints
+    const generateWaypoints = () => {
+      const numPoints = 5 // Number of points in the path
+      const points = []
+      const gridCells = currentGridSize // Total number of cells in the grid
+      
+      for (let i = 0; i < numPoints; i++) {
+        // Keep characters within the grid bounds with a 1-cell margin
+        const x = 1 + Math.floor(Math.random() * (gridCells - 2))
+        const y = 1 + Math.floor(Math.random() * (gridCells - 2))
+        points.push({
+          x,
+          y,
+          idleTime: Math.random() < 0.3 ? Math.random() * 2 + 1 : 0 // 30% chance to idle for 1-3 seconds
+        })
+      }
+      return points
     }
 
-    // Generate initial animated elements - fewer but permanent
+    // Generate initial animated elements with waypoints
     const initialElements: AnimatedElementData[] = [
-      // 2 people
+      // 2 red women
       {
-        id: 'person-1',
-        type: 'person',
-        startX: getRandomPosition(true),
-        startY: getRandomPosition(false),
-        endX: getRandomPosition(true),
-        endY: getRandomPosition(false),
-        duration: getRandomDuration(),
-        delay: 0
+        id: 'villager-1',
+        type: 'red-woman',
+        waypoints: generateWaypoints()
       },
       {
-        id: 'person-2',
-        type: 'person',
-        startX: getRandomPosition(true),
-        startY: getRandomPosition(false),
-        endX: getRandomPosition(true),
-        endY: getRandomPosition(false),
-        duration: getRandomDuration(),
-        delay: 0
+        id: 'villager-2',
+        type: 'red-woman',
+        waypoints: generateWaypoints()
+      },
+      // 2 blue men
+      {
+        id: 'blue-man-1',
+        type: 'blue-man',
+        waypoints: generateWaypoints()
+      },
+      {
+        id: 'blue-man-2',
+        type: 'blue-man',
+        waypoints: generateWaypoints()
+      },
+      // 2 cow women
+      {
+        id: 'cow-woman-1',
+        type: 'cow-woman',
+        waypoints: generateWaypoints()
+      },
+      {
+        id: 'cow-woman-2',
+        type: 'cow-woman',
+        waypoints: generateWaypoints()
       },
       // 2 butterflies
       {
         id: 'butterfly-1',
         type: 'butterfly',
-        startX: getRandomPosition(true),
-        startY: getRandomPosition(false),
-        endX: getRandomPosition(true),
-        endY: getRandomPosition(false),
-        duration: getRandomDuration(),
-        delay: 0
+        waypoints: generateWaypoints()
       },
       {
         id: 'butterfly-2',
         type: 'butterfly',
-        startX: getRandomPosition(true),
-        startY: getRandomPosition(false),
-        endX: getRandomPosition(true),
-        endY: getRandomPosition(false),
-        duration: getRandomDuration(),
-        delay: 0
+        waypoints: generateWaypoints()
       },
       // 1 wolf
       {
         id: 'wolf-1',
         type: 'wolf',
-        startX: getRandomPosition(true),
-        startY: getRandomPosition(false),
-        endX: getRandomPosition(true),
-        endY: getRandomPosition(false),
-        duration: getRandomDuration(),
-        delay: 0
+        waypoints: generateWaypoints()
       }
     ]
 
     setAnimatedElements(initialElements)
 
-    // Update animations more frequently for continuous movement
-    const interval = setInterval(updateAnimations, 3000)
+    // Update waypoints periodically
+    const interval = setInterval(() => {
+      setAnimatedElements(prev => prev.map(element => ({
+        ...element,
+        waypoints: generateWaypoints()
+      })))
+    }, 30000) // Increased from 15000 to 30000 (30 seconds) to let characters complete their paths
+
     return () => clearInterval(interval)
-  }, [])
+  }, [currentGridSize]) // Add currentGridSize as dependency
 
   const loadVillageLayout = async (userId: string) => {
     try {
@@ -652,11 +640,11 @@ export default function VillagePage() {
         .from('profiles')
         .select('id')
         .eq('id', user.id)
-        .single()
+          .single()
 
       if (profileError) {
         console.error('Profile not found:', profileError)
-        return
+          return
       }
 
       console.log('Starting village save...')
@@ -783,7 +771,7 @@ export default function VillagePage() {
       }
 
       // Update local state
-      setResources(prev => ({
+    setResources(prev => ({
         ...prev,
         points: prev.points - expansionCost,
         plotSize: newPlotSize
@@ -809,7 +797,7 @@ export default function VillagePage() {
         return newItems
       })
 
-      setHasUnsavedChanges(true)
+    setHasUnsavedChanges(true)
       alert(`Plot expanded successfully! New size: ${newGridSize}x${newGridSize}`)
     } catch (error) {
       console.error('Error expanding plot:', error)
@@ -874,7 +862,7 @@ export default function VillagePage() {
     if (!draggedItem) return
     
     // Create a new array for the grid items
-    const newGridItems = [...gridItems]
+      const newGridItems = [...gridItems]
     
     // If we're dragging from the grid (moving an existing item)
     if (isDraggingFromGrid && dragSourceIndex !== null) {
@@ -1091,77 +1079,93 @@ export default function VillagePage() {
                 </div>
               ) : (
                 <>
-                  <div 
-                    className="grid gap-0 bg-gray-800 p-1 rounded-lg aspect-square w-[800px] mx-auto" 
-                    style={{ gridTemplateColumns: `repeat(${currentGridSize}, 1fr)` }}
-                  >
-                    {Array.from({ length: currentGridSize * currentGridSize }).map((_, index) => (
-                      <div
-                        key={index}
-                        className="aspect-square relative cursor-pointer hover:brightness-110"
-                        onDragOver={(e) => {
-                          e.preventDefault()
-                          e.currentTarget.classList.add('brightness-110')
-                        }}
-                        onDragLeave={(e) => {
-                          e.currentTarget.classList.remove('brightness-110')
-                        }}
-                        onDrop={(e) => {
-                          e.preventDefault()
-                          e.currentTarget.classList.remove('brightness-110')
-                          handleDrop(e, index)
-                        }}
-                      >
-                        {/* Background Tile */}
-                        <div className="absolute inset-0">
-                          <Image
-                            src={getTilePath(tileNumbers[index])}
-                            alt="Tile"
-                            fill
-                            sizes="(max-width: 768px) 50px, 100px"
-                            className="object-cover"
-                          />
-                        </div>
-                        
-                        {/* Item Overlay */}
-                        {gridItems[index] && (
-                          <div 
-                            className="absolute inset-0 flex items-center justify-center z-10"
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, gridItems[index]!, index)}
-                          >
-                            <div className={`relative w-full h-full transform ${getItemSizeClass(gridItems[index]!.id)}`}>
-                              <Image
-                                src={gridItems[index]!.image}
-                                alt={gridItems[index]!.name}
-                                fill
-                                sizes="(max-width: 768px) 50px, 100px"
-                                className="object-contain"
-                              />
-                            </div>
+                  {/* Main Grid Container */}
+                  <div className="relative w-[800px] mx-auto">
+                    {/* Village Grid */}
+                    <div 
+                      className="grid gap-0 bg-gray-800 p-1 rounded-lg aspect-square relative z-10" 
+                      style={{ 
+                        gridTemplateColumns: `repeat(${currentGridSize}, 1fr)`,
+                        isolation: 'isolate'
+                      }}
+                    >
+                      {Array.from({ length: currentGridSize * currentGridSize }).map((_, index) => (
+                        <div
+                          key={index}
+                          className="aspect-square relative cursor-pointer hover:brightness-110"
+                          onDragOver={(e) => {
+                            e.preventDefault()
+                            e.currentTarget.classList.add('brightness-110')
+                          }}
+                          onDragLeave={(e) => {
+                            e.currentTarget.classList.remove('brightness-110')
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault()
+                            e.currentTarget.classList.remove('brightness-110')
+                            handleDrop(e, index)
+                          }}
+                        >
+                          {/* Background Tile */}
+                          <div className="absolute inset-0">
+                            <Image
+                              src={getTilePath(tileNumbers[index])}
+                              alt="Tile"
+                              fill
+                              sizes="(max-width: 768px) 50px, 100px"
+                              className="object-cover"
+                            />
                           </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                          
+                          {/* Item Overlay */}
+                          {gridItems[index] && (
+                            <div 
+                              className="absolute inset-0 flex items-center justify-center"
+                              draggable
+                              onDragStart={(e) => handleDragStart(e, gridItems[index]!, index)}
+                            >
+                              <div className={`relative w-full h-full transform ${getItemSizeClass(gridItems[index]!.id)}`}>
+                                <Image
+                                  src={gridItems[index]!.image}
+                                  alt={gridItems[index]!.name}
+                                  fill
+                                  sizes="(max-width: 768px) 50px, 100px"
+                                  className="object-contain"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
 
-                  {/* Animated Elements */}
-                  <div className="absolute inset-0 pointer-events-none">
-                    {animatedElements.map((element) => (
-                      <AnimatedElement
-                        key={element.id}
-                        type={element.type}
-                        startX={element.startX}
-                        startY={element.startY}
-                        endX={element.endX}
-                        endY={element.endY}
-                        duration={element.duration}
-                        delay={element.delay}
-                        controlX={element.controlX}
-                        controlY={element.controlY}
-                        gridSize={currentGridSize}
-                      />
-                    ))}
+                    {/* Animated Elements */}
+                    <div className="absolute inset-0 pointer-events-none">
+                      {Array.from({ length: 25 }).map((_, index) => {
+                        const types = ['butterfly', 'wolf', 'blue-man', 'cow-woman', 'red-woman'] as const
+                        const type = types[Math.floor(Math.random() * types.length)]
+                        const startX = Math.random() * 80 + 10
+                        const startY = Math.random() * 80 + 10
+                        const endX = Math.random() * 80 + 10
+                        const endY = Math.random() * 80 + 10
+                        const duration = 5 + Math.random() * 5
+                        const delay = Math.random() * 2
+
+                        return (
+                          <AnimatedElement
+                            key={`character-${index}`}
+                            type={type}
+                            startX={startX}
+                            startY={startY}
+                            endX={endX}
+                            endY={endY}
+                            duration={duration}
+                            delay={delay}
+                            gridSize={currentGridSize}
+                          />
+                        )
+                      })}
+                    </div>
                   </div>
                 </>
               )}

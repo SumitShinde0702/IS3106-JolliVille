@@ -1,20 +1,17 @@
-import React from 'react'
-import Image from 'next/image'
+import React, { useEffect, useState } from 'react'
 
 interface AnimatedElementProps {
-  type: 'person' | 'butterfly' | 'wolf'
+  type: 'butterfly' | 'wolf' | 'blue-man' | 'cow-woman' | 'red-woman'
   startX: number
   startY: number
   endX: number
   endY: number
   duration: number
   delay: number
-  controlX?: number
-  controlY?: number
   gridSize: number
 }
 
-const AnimatedElement: React.FC<AnimatedElementProps> = ({
+export default function AnimatedElement({
   type,
   startX,
   startY,
@@ -22,88 +19,78 @@ const AnimatedElement: React.FC<AnimatedElementProps> = ({
   endY,
   duration,
   delay,
-  controlX,
-  controlY,
   gridSize
-}) => {
-  // Get sprite dimensions based on type
-  const getSpriteDimensions = () => {
+}: AnimatedElementProps) {
+  const [uniqueId] = useState(() => Math.random().toString(36).substr(2, 9))
+  
+  // Dimension mapping based on sprite sheet sizes
+  const getDimensions = (type: string) => {
     switch (type) {
-      case 'person':
-        return { width: 32, height: 32, steps: 4, duration: 1 }
       case 'butterfly':
-        return { width: 24, height: 24, steps: 4, duration: 0.8 }
+        return { width: 16, height: 16, scale: 1.5, frames: 2, duration: 2 }
       case 'wolf':
-        return { width: 40, height: 40, steps: 4, duration: 1.2 }
+        return { width: 48, height: 48, scale: 0.8, frames: 6, duration: 0.6 }
+      case 'blue-man':
+        return { width: 32, height: 48, scale: 0.8, frames: 6, duration: 2.2 }
+      case 'cow-woman':
+        return { width: 32, height: 48, scale: 0.8, frames: 4, duration: 2.2 }
+      case 'red-woman':
+        return { width: 32, height: 48, scale: 0.8, frames: 4, duration: 2.2 }
       default:
-        return { width: 32, height: 32, steps: 4, duration: 1 }
+        return { width: 32, height: 32, scale: 1, frames: 4, duration: 0.8 }
     }
   }
 
-  const dimensions = getSpriteDimensions()
-  
-  // Calculate scale based on grid size (smaller as grid gets bigger)
-  const scale = Math.max(0.4, 1 - (gridSize - 8) * 0.1)
+  const { width, height, scale, frames, duration: spriteDuration } = getDimensions(type)
 
-  // Calculate direction based on movement
+  // Calculate direction
   const dx = endX - startX
   const dy = endY - startY
-  let direction = 'D' // Default to down
-  if (Math.abs(dx) > Math.abs(dy)) {
-    // For horizontal movement, use S_Walk for both directions
-    direction = 'S'
-  } else {
-    direction = dy > 0 ? 'D' : 'U'
+  const direction = Math.abs(dx) > Math.abs(dy) 
+    ? (dx > 0 ? 'S' : 'S') 
+    : (dy > 0 ? 'D' : 'U')
+
+  // Get folder name
+  const folderMap: Record<string, string> = {
+    'butterfly': 'butterflies',
+    'wolf': 'wolves',
+    'blue-man': 'blue-men',
+    'cow-woman': 'cow-women',
+    'red-woman': 'red-women'
   }
 
-  // Get the sprite sheet path based on type and direction
-  const imagePath = type === 'person' 
-    ? `/village-items/people/${direction}_${direction === 'D' ? 'Idle' : 'Special'}.png`
-    : type === 'wolf'
-    ? `/village-items/wolves/${direction}_Walk.png`
-    : `/village-items/butterflies/${direction}_Walk.png`
-
-  // Flip the image horizontally if moving left
-  const shouldFlip = dx < 0 && Math.abs(dx) > Math.abs(dy)
+  // Convert to pixels
+  const pxX = (x: number) => (x * 800) / 100
+  const pxY = (y: number) => (y * 800) / 100
 
   return (
     <div
-      className="animated-element"
       style={{
-        '--start-x': `${startX}%`,
-        '--start-y': `${startY}%`,
-        '--end-x': `${endX}%`,
-        '--end-y': `${endY}%`,
-        '--control-x': controlX ? `${controlX}%` : undefined,
-        '--control-y': controlY ? `${controlY}%` : undefined,
-        '--duration': `${duration}s`,
-        '--delay': `${delay}s`,
-        '--sprite-duration': `${dimensions.duration}s`,
-        '--sprite-steps': dimensions.steps,
-        width: `${dimensions.width}px`,
-        height: `${dimensions.height}px`,
-        transform: shouldFlip ? 'scaleX(-1)' : 'none'
-      } as React.CSSProperties}
+        position: 'absolute',
+        width: width,
+        height: height,
+        left: pxX(startX),
+        top: pxY(startY),
+        backgroundImage: `url(/village-items/${folderMap[type]}/${direction}_Walk.png)`,
+        backgroundRepeat: 'no-repeat',
+        imageRendering: 'pixelated',
+        transform: `scale(${scale}) ${dx < 0 ? 'scaleX(-1)' : ''}`,
+        transformOrigin: 'center',
+        zIndex: 10
+      }}
+      className={`character-${uniqueId}`}
     >
-      <div 
-        className="relative w-full h-full"
-        style={{ transform: `scale(${scale})` }}
-      >
-        <div className="relative w-full h-full overflow-hidden">
-          <Image
-            src={imagePath}
-            alt={type}
-            fill
-            className="object-cover"
-            style={{
-              objectPosition: '0 0', // Show only the first frame
-              objectFit: 'cover'
-            }}
-          />
-        </div>
-      </div>
+      <style jsx>{`
+        .character-${uniqueId} {
+          animation: 
+            walkSprite-${uniqueId} ${spriteDuration}s steps(${frames}) infinite;
+        }
+
+        @keyframes walkSprite-${uniqueId} {
+          0% { background-position-x: 0px; }
+          100% { background-position-x: -${width * frames}px; }
+        }
+      `}</style>
     </div>
   )
-}
-
-export default AnimatedElement 
+} 
