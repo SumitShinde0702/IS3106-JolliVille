@@ -190,12 +190,124 @@ const updatePointsHandler: AsyncRequestHandler = async (req, res) => {
   }
 }
 
+// **Profile API Routes**
+// Update profile
+const updateProfileHandler: AsyncRequestHandler = async (req, res) => {
+  try {
+    const { username, email } = req.body
+    const userId = req.session.userId
+
+    const { data: user, error } = await supabase
+      .from('profiles')
+      .update({ username, email })
+      .eq('id', userId)
+      .select('id, email, username, points')
+      .single()
+
+    if (error) throw error
+    res.json({ user })
+  } catch (error) {
+    console.error('Update profile error:', error)
+    res.status(500).json({ error: 'Failed to update profile' })
+  }
+}
+
+// Change password
+const changePasswordHandler: AsyncRequestHandler = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body
+    const userId = req.session.userId
+
+    const { data: user, error } = await supabase
+      .from('profiles')
+      .select('password')
+      .eq('id', userId)
+      .single()
+
+    if (error || !user) {
+      res.status(401).json({ error: 'User not found' })
+      return
+    }
+
+    const validPassword = await bcrypt.compare(currentPassword, user.password)
+    if (!validPassword) {
+      res.status(401).json({ error: 'Invalid current password' })
+      return
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+    const { data: updatedUser } = await supabase
+      .from('profiles')
+      .update({ password: hashedPassword })
+      .eq('id', userId)
+      .select('id, email, username, points')
+      .single()
+
+
+    res.json({ user: updatedUser })
+  } catch (error) {
+    console.error('Change password error:', error)
+    res.status(500).json({ error: 'Failed to change password' })
+  }
+}
+
+// Delete account
+const deleteAccountHandler: AsyncRequestHandler = async (req, res) => {
+  try {
+    const { password } = req.body
+    const userId = req.session.userId
+
+    const { data: user, error } = await supabase
+      .from('profiles')
+      .select('password')
+      .eq('id', userId)
+      .single()
+
+    if (error || !user) {
+      res.status(401).json({ error: 'User not found' })
+      return
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password)
+    if (!validPassword) {
+      res.status(401).json({ error: 'Invalid password' })
+      return
+    }
+
+    // Delete user from Supabase
+    const { error: deleteError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', userId)
+
+    if (deleteError) throw deleteError
+
+    // Destroy session
+    req.session.destroy((err) => {
+      if (err) {
+        res.status(500).json({ error: 'Failed to log out after account deletion' })
+        return
+      }
+      res.json({ message: 'Account deleted successfully' })
+    })
+  } catch (error) {
+    console.error('Delete account error:', error)
+    res.status(500).json({ error: 'Failed to delete account' })
+  }
+}
+
 // Register routes
 app.post('/api/auth/register', registerHandler)
 app.post('/api/auth/login', loginHandler)
 app.post('/api/auth/logout', logoutHandler)
 app.get('/api/auth/me', requireAuth, meHandler)
 app.put('/api/auth/update-points', requireAuth, updatePointsHandler)
+
+// Profile routes
+app.put('/api/auth/update-profile', requireAuth, updateProfileHandler)
+app.post('/api/auth/change-password', requireAuth, changePasswordHandler)
+app.delete('/api/auth/delete-account', requireAuth, deleteAccountHandler)
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`)
