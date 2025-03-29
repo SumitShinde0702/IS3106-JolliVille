@@ -351,7 +351,7 @@ export default function VillagePage() {
     // Helper function to generate waypoints
     const generateWaypoints = () => {
       const numPoints = 5 // Number of points in the path
-      const points = []
+      const points: {x: number; y: number; idleTime?: number}[] = []
       const gridCells = currentGridSize // Total number of cells in the grid
       
       for (let i = 0; i < numPoints; i++) {

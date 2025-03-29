@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { createClient } from '@supabase/supabase-js'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { v4 as uuidv4 } from 'uuid'
-import { FiPlus, FiMessageSquare, FiTrash2 } from 'react-icons/fi'
+import { FiPlus, FiMessageSquare, FiTrash2, FiEdit } from 'react-icons/fi'
 
 interface Message {
   role: 'user' | 'assistant' | 'system'
@@ -25,6 +25,8 @@ export default function ChatBot() {
   const [messages, setMessages] = useState<Message[]>([])
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [editingMessageIndex, setEditingMessageIndex] = useState<number | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const supabase = createClientComponentClient()
 
@@ -147,9 +149,128 @@ export default function ChatBot() {
     }
   }
 
+  const handleEditMessage = (index: number) => {
+    // Only allow editing user messages
+    if (messages[index].role === 'user') {
+      setEditingMessageIndex(index)
+      setMessage(messages[index].content)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingMessageIndex(null)
+    setMessage('')
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!message.trim() || !currentConversationId || !user) return
+    if (!message.trim() || !user) return
+
+    // Handle editing an existing message
+    if (editingMessageIndex !== null) {
+      // Create a copy of messages up to the edited message
+      const updatedMessages = messages.slice(0, editingMessageIndex + 1)
+      
+      // Update the content of the edited message
+      updatedMessages[editingMessageIndex] = {
+        ...updatedMessages[editingMessageIndex],
+        content: message
+      }
+      
+      // Update state with just these messages
+      setMessages(updatedMessages)
+      setMessage('')
+      setEditingMessageIndex(null)
+      
+      // Send the updated message
+      setIsLoading(true)
+      
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: updatedMessages,
+            userId: user.id
+          })
+        })
+
+        if (!response.ok) throw new Error('Failed to fetch response')
+
+        const data = await response.json()
+        const assistantMessage: Message = { role: 'assistant', content: data.message }
+        setMessages([...updatedMessages, assistantMessage])
+
+        // Save assistant message
+        if (currentConversationId) {
+          await saveMessage(currentConversationId, assistantMessage)
+        }
+        
+        // Update conversations list to show new message
+        fetchConversations()
+      } catch (error) {
+        console.error('Error:', error)
+      } finally {
+        setIsLoading(false)
+      }
+      
+      return
+    }
+
+    // If no conversation exists, create one first
+    if (!currentConversationId) {
+      // We need to wait for the state to update with the new conversation ID
+      // So we'll create a temporary ID to use for this submission
+      const tempId = uuidv4()
+      const { error } = await supabase
+        .from('chat_conversations')
+        .insert([{ id: tempId, user_id: user.id }])
+
+      if (error) {
+        console.error('Error creating conversation:', error)
+        return
+      }
+      setCurrentConversationId(tempId)
+      
+      const newMessage: Message = { role: 'user', content: message }
+      setMessages([newMessage])
+      setMessage('')
+      
+      // Save user message
+      await saveMessage(tempId, newMessage)
+      
+      // Set loading state
+      setIsLoading(true)
+
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [newMessage],
+            userId: user.id
+          })
+        })
+
+        if (!response.ok) throw new Error('Failed to fetch response')
+
+        const data = await response.json()
+        const assistantMessage: Message = { role: 'assistant', content: data.message }
+        setMessages([newMessage, assistantMessage])
+
+        // Save assistant message
+        await saveMessage(tempId, assistantMessage)
+        
+        // Update conversations list to show new message
+        fetchConversations()
+      } catch (error) {
+        console.error('Error:', error)
+      } finally {
+        setIsLoading(false)
+      }
+      
+      return
+    }
 
     const newMessage: Message = { role: 'user', content: message }
     setMessages(prev => [...prev, newMessage])
@@ -157,6 +278,9 @@ export default function ChatBot() {
 
     // Save user message
     await saveMessage(currentConversationId, newMessage)
+    
+    // Set loading state
+    setIsLoading(true)
 
     try {
       const response = await fetch('/api/chat', {
@@ -181,6 +305,8 @@ export default function ChatBot() {
       fetchConversations()
     } catch (error) {
       console.error('Error:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -241,39 +367,90 @@ export default function ChatBot() {
                 }`}
               >
                 <div
-                  className={`max-w-[70%] rounded-2xl p-4 ${
+                  className={`max-w-[70%] rounded-2xl p-4 relative group ${
                     msg.role === 'user'
                       ? 'bg-pink-600 text-white'
                       : 'bg-white shadow-md text-gray-800'
                   }`}
                 >
                   <p className="whitespace-pre-wrap">{msg.content}</p>
+                  
+                  {/* Edit button for user messages */}
+                  {msg.role === 'user' && (
+                    <button 
+                      className="absolute -top-2 -right-2 w-8 h-8 flex items-center justify-center bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleEditMessage(index)}
+                      title="Edit message"
+                    >
+                      <FiEdit className="w-4 h-4 text-pink-600" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
+            
+            {/* Loading indicator */}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="max-w-[70%] rounded-2xl p-4 bg-white shadow-md">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse"></div>
+                    <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                    <span className="text-sm text-gray-500">JolliBot is typing...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Form */}
-          <div className="p-6 border-t border-gray-200 bg-white/80 backdrop-blur-md">
-            <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
-              <div className="flex space-x-4">
-                <input
-                  type="text"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Type your message..."
-                  className="flex-1 p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white shadow-sm"
-                />
+          {/* Input form */}
+          <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200 bg-white/70">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={editingMessageIndex !== null ? "Edit your message..." : "Type your message..."}
+                className="flex-1 p-3 rounded-lg border border-gray-300 focus:border-pink-500 focus:outline-none"
+                disabled={isLoading}
+              />
+              <div className="relative">
                 <button
                   type="submit"
-                  className="bg-pink-600 text-white rounded-xl px-6 py-4 hover:bg-pink-700 transition-colors shadow-sm"
+                  className="bg-pink-600 text-white rounded-lg px-6 py-3 hover:bg-pink-700 transition-colors disabled:bg-pink-400 group"
+                  disabled={!message.trim() || isLoading}
                 >
-                  Send
+                  {editingMessageIndex !== null ? 'Update' : 'Send'}
+                  
+                  {/* Tooltip for disabled button - Now positioned to the left of the button */}
+                  <div className="absolute opacity-0 pointer-events-none group-hover:opacity-100 top-1/2 right-full mr-3 transform -translate-y-1/2 bg-gray-800 text-white text-xs rounded-md px-3 py-2 w-44 text-center transition-opacity duration-200 z-[100]">
+                    <div className="absolute w-2 h-2 bg-gray-800 transform rotate-45 top-1/2 -translate-y-1/2 -right-1"></div>
+                    {!message.trim() ? (
+                      <span>
+                        Please type a message<br />before sending
+                      </span>
+                    ) : (
+                      'Sending...'
+                    )}
+                  </div>
                 </button>
               </div>
-            </form>
-          </div>
+              
+              {/* Cancel edit button */}
+              {editingMessageIndex !== null && (
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="bg-gray-200 text-gray-700 rounded-lg px-4 py-3 hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
         </div>
       </div>
     </div>
