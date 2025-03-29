@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import AnimatedElement from '../components/AnimatedElement'
+import Weather from '../components/Weather'
 import { getCurrentUser, updateUserPoints } from '../lib/auth'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
@@ -235,6 +236,7 @@ const calculateExpansionCost = (currentPlotSize: number): number => {
 }
 
 export default function VillagePage() {
+  const [currentWeather, setCurrentWeather] = useState<'sunny' | 'rainy' | 'windy' | 'nothing'>('sunny')
   const [gridItems, setGridItems] = useState<(VillageItem | null)[]>(Array(GRID_SIZE * GRID_SIZE).fill(null))
   const [ownedItems, setOwnedItems] = useState<VillageItem[]>([])
   const [draggedItem, setDraggedItem] = useState<VillageItem | null>(null)
@@ -353,9 +355,9 @@ export default function VillagePage() {
       const gridCells = currentGridSize // Total number of cells in the grid
       
       for (let i = 0; i < numPoints; i++) {
-        // Keep characters within the grid bounds with a 1-cell margin
-        const x = 1 + Math.floor(Math.random() * (gridCells - 2))
-        const y = 1 + Math.floor(Math.random() * (gridCells - 2))
+        // Keep characters within the visible grid area
+        const x = Math.random() * gridCells
+        const y = Math.random() * gridCells
         points.push({
           x,
           y,
@@ -891,74 +893,23 @@ export default function VillagePage() {
   // Get items for selected category
   const categoryItems = ownedItems.filter(item => item.category === selectedCategory)
 
-  // Add function to reset all users to starter items
-  const resetAllUsersToStarterItems = async () => {
-    try {
-      // Delete all owned items
-      const { error: deleteOwnedError } = await supabase
-        .from('owned_items')
-        .delete()
-        .neq('id', 'dummy') // Delete all rows
+  // Generate wind particles
+  const windParticles = Array.from({ length: 30 }, (_, i) => ({
+    id: i,
+    delay: Math.random() * 5,
+    duration: 3 + Math.random() * 2,
+    top: Math.random() * 100,
+    size: 8 + Math.random() * 8
+  }))
 
-      if (deleteOwnedError) {
-        console.error('Error deleting owned items:', deleteOwnedError)
-        return
-      }
-
-      // Delete all placed items
-      const { error: deletePlacedError } = await supabase
-        .from('village_items')
-        .delete()
-        .neq('id', 'dummy') // Delete all rows
-
-      if (deletePlacedError) {
-        console.error('Error deleting placed items:', deletePlacedError)
-        return
-      }
-
-      // Reset all users' points to starting amount (e.g., 1000)
-      const { error: resetPointsError } = await supabase
-        .from('profiles')
-        .update({ points: 1000 })
-        .neq('id', 'dummy') // Update all rows
-
-      if (resetPointsError) {
-        console.error('Error resetting points:', resetPointsError)
-        return
-      }
-
-      // Reset all plot sizes to 1
-      const { error: resetLayoutError } = await supabase
-        .from('village_layouts')
-        .update({ plot_size: 1 })
-        .neq('id', 'dummy') // Update all rows
-
-      if (resetLayoutError) {
-        console.error('Error resetting layouts:', resetLayoutError)
-        return
-      }
-
-      console.log('Successfully reset all users to starter items')
-      
-      // Reload the current user's data
-      const { user } = await getCurrentUser()
-      if (user) {
-        await loadVillageLayout(user.id)
-      }
-    } catch (error) {
-      console.error('Error resetting users:', error)
-    }
-  }
-
-  // Add button to reset all users (temporary, remove after use)
-  const ResetAllUsersButton = () => (
-    <button
-      onClick={resetAllUsersToStarterItems}
-      className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
-    >
-      Reset All Users
-    </button>
-  )
+  // Generate raindrops
+  const raindrops = Array.from({ length: 100 }, (_, i) => ({
+    id: i,
+    delay: Math.random() * 2,
+    left: Math.random() * 100,
+    top: Math.random() * 100,
+    duration: 0.5 + Math.random() * 0.3
+  }))
 
   if (loading) {
     return (
@@ -970,6 +921,9 @@ export default function VillagePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex">
+      {/* Weather Component - Now in the pink region */}
+      <Weather gridSize={currentGridSize} onWeatherChange={setCurrentWeather} />
+
       {/* Sidebar with Owned Items */}
       <div 
         className="w-80 bg-white/80 backdrop-blur-sm border-r border-gray-200 shadow-lg p-4 overflow-y-auto"
@@ -1079,20 +1033,81 @@ export default function VillagePage() {
                 </div>
               ) : (
                 <>
-                  {/* Main Grid Container */}
+                  {/* Main container with explicit stacking context */}
                   <div className="relative w-[800px] mx-auto">
-                    {/* Village Grid */}
+                    {/* Grid container */}
                     <div 
-                      className="grid gap-0 bg-gray-800 p-1 rounded-lg aspect-square relative z-10" 
-                      style={{ 
-                        gridTemplateColumns: `repeat(${currentGridSize}, 1fr)`,
-                        isolation: 'isolate'
-                      }}
+                      className="grid gap-0 bg-gray-800 p-1 rounded-lg aspect-square relative" 
+                      style={{ gridTemplateColumns: `repeat(${currentGridSize}, 1fr)` }}
                     >
+                      {/* Weather Effects - Inside grid but with higher z-index */}
+                      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                        {currentWeather === 'sunny' && (
+                          <div className="absolute top-2 right-2 w-[100px] h-[100px] z-[25]">
+                            <div className="absolute w-[80px] h-[80px] bg-yellow-300 rounded-full shadow-[0_0_40px_rgba(255,215,0,0.8)] animate-pulse"></div>
+                            <div className="absolute w-[100px] h-[100px] bg-gradient-radial from-yellow-200/50 to-transparent animate-spin-slow"></div>
+                          </div>
+                        )}
+
+                        {currentWeather === 'windy' && (
+                          <>
+                            {windParticles.map(particle => (
+                              <div
+                                key={particle.id}
+                                className="absolute h-[4px] bg-gradient-to-r from-white/30 via-white/80 to-white/30 rounded-full shadow-[0_0_5px_rgba(255,255,255,0.5)] z-[25]"
+                                style={{
+                                  top: `${particle.top}%`,
+                                  left: `-${particle.size}px`,
+                                  width: `${particle.size}px`,
+                                  opacity: 0.9,
+                                  animation: `windAnimation ${particle.duration}s ${particle.delay}s linear infinite`
+                                }}
+                              />
+                            ))}
+                          </>
+                        )}
+
+                        {currentWeather === 'rainy' && (
+                          <>
+                            <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-blue-600/20 z-[25]"></div>
+                            {raindrops.map(drop => (
+                              <div
+                                key={drop.id}
+                                className="absolute w-[1px] h-[15px] bg-gradient-to-b from-white/90 to-white/40 z-[25]"
+                                style={{
+                                  left: `${drop.left}%`,
+                                  top: `${drop.top}%`,
+                                  opacity: 0.7,
+                                  animation: `rainAnimation ${drop.duration}s ${drop.delay}s linear infinite`
+                                }}
+                              />
+                            ))}
+                          </>
+                        )}
+                      </div>
+
+                      {/* Animated Villagers Container - Absolute positioned over the grid */}
+                      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                        {animatedElements.map((element) => (
+                          <AnimatedElement
+                            key={element.id}
+                            type={element.type}
+                            startX={element.waypoints[0]?.x || 0}
+                            startY={element.waypoints[0]?.y || 0}
+                            endX={element.waypoints[1]?.x || 0}
+                            endY={element.waypoints[1]?.y || 0}
+                            duration={10 + Math.random() * 5} // Slower movement (10-15 seconds)
+                            delay={Math.random() * 3}
+                            gridSize={currentGridSize}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Grid Items */}
                       {Array.from({ length: currentGridSize * currentGridSize }).map((_, index) => (
                         <div
                           key={index}
-                          className="aspect-square relative cursor-pointer hover:brightness-110"
+                          className="aspect-square relative cursor-pointer hover:brightness-110 z-10"
                           onDragOver={(e) => {
                             e.preventDefault()
                             e.currentTarget.classList.add('brightness-110')
@@ -1120,7 +1135,7 @@ export default function VillagePage() {
                           {/* Item Overlay */}
                           {gridItems[index] && (
                             <div 
-                              className="absolute inset-0 flex items-center justify-center"
+                              className="absolute inset-0 flex items-center justify-center z-20"
                               draggable
                               onDragStart={(e) => handleDragStart(e, gridItems[index]!, index)}
                             >
@@ -1137,34 +1152,6 @@ export default function VillagePage() {
                           )}
                         </div>
                       ))}
-                    </div>
-
-                    {/* Animated Elements */}
-                    <div className="absolute inset-0 pointer-events-none">
-                      {Array.from({ length: 25 }).map((_, index) => {
-                        const types = ['butterfly', 'wolf', 'blue-man', 'cow-woman', 'red-woman'] as const
-                        const type = types[Math.floor(Math.random() * types.length)]
-                        const startX = Math.random() * 80 + 10
-                        const startY = Math.random() * 80 + 10
-                        const endX = Math.random() * 80 + 10
-                        const endY = Math.random() * 80 + 10
-                        const duration = 5 + Math.random() * 5
-                        const delay = Math.random() * 2
-
-                        return (
-                          <AnimatedElement
-                            key={`character-${index}`}
-                            type={type}
-                            startX={startX}
-                            startY={startY}
-                            endX={endX}
-                            endY={endY}
-                            duration={duration}
-                            delay={delay}
-                            gridSize={currentGridSize}
-                          />
-                        )
-                      })}
                     </div>
                   </div>
                 </>
@@ -1207,8 +1194,6 @@ export default function VillagePage() {
         </div>
       )}
 
-      <ResetAllUsersButton />
-
       <style jsx global>{`
         .text-gradient {
           background: linear-gradient(to right, #ec4899, #8b5cf6, #6366f1);
@@ -1243,6 +1228,7 @@ export default function VillagePage() {
           height: 32px;
           animation: move var(--duration) ease-in-out infinite;
           animation-delay: var(--delay);
+          z-index: 15;
         }
 
         .animated-element img {
@@ -1250,6 +1236,56 @@ export default function VillagePage() {
           height: 100%;
           object-fit: cover;
           animation: spriteAnimation var(--sprite-duration, 1s) steps(var(--sprite-steps, 4)) infinite;
+        }
+        
+        /* Weather animations */
+        @keyframes windAnimation {
+          0% {
+            transform: translateX(0) scaleX(0.7);
+            opacity: 0;
+          }
+          10% { opacity: 0.9; }
+          90% { opacity: 0.9; }
+          100% {
+            transform: translateX(calc(100vw + 100px)) scaleX(1.2);
+            opacity: 0;
+          }
+        }
+
+        @keyframes rainAnimation {
+          0% {
+            transform: translateY(0) rotate(15deg);
+            opacity: 0.7;
+          }
+          90% {
+            opacity: 0.7;
+          }
+          100% {
+            transform: translateY(calc(100% + 15px)) rotate(15deg);
+            opacity: 0;
+          }
+        }
+        
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); opacity: 0.9; }
+          50% { transform: scale(1.1); opacity: 1; }
+        }
+        
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        .animate-pulse {
+          animation: pulse 4s ease-in-out infinite;
+        }
+        
+        .animate-spin-slow {
+          animation: spin-slow 20s linear infinite;
+        }
+        
+        .bg-gradient-radial {
+          background: radial-gradient(circle at center, var(--tw-gradient-from), var(--tw-gradient-to));
         }
       `}</style>
     </div>
