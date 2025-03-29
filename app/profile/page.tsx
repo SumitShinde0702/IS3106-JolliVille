@@ -46,7 +46,7 @@ export default function ProfilePage() {
     if (error) {
       setError(error);
     } else {
-      setSuccess("Profile updated successfully!");
+      //setSuccess("Profile updated successfully!");
       refreshUser();
       alert("Changes saved successfully!");
     }
