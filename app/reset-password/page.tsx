@@ -26,7 +26,7 @@ export default function ResetPasswordPage() {
       console.log('Full URL:', window.location.href);
       
       // Try to extract the token from the full URL
-      let fullUrlToken = null;
+      let fullUrlToken: string | null = null;
       try {
         // Some email clients might mess with the URL encoding, try to extract from the full URL
         const fullUrl = window.location.href;
@@ -77,7 +77,7 @@ export default function ResetPasswordPage() {
       console.log('Has token in params:', hasTokenInParams);
       
       // Attempt to extract and use the token directly
-      let accessToken = null;
+      let accessToken: string | null = null;
       
       if (hasHashFragment) {
         try {
@@ -202,7 +202,7 @@ export default function ResetPasswordPage() {
         console.log('Attempting recovery with URL token...');
         
         // Try to extract token from various places
-        let token = null;
+        let token: string | null = null;
         
         // From hash
         if (window.location.hash.includes('access_token=')) {
@@ -348,7 +348,7 @@ export default function ResetPasswordPage() {
       console.log('Manually attempting to parse and set session token');
       
       // Try to extract token from various places
-      let token = null;
+      let token: string | null = null;
       
       // From hash
       if (window.location.hash.includes('access_token=')) {
