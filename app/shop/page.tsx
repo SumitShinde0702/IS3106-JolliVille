@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { getCurrentUser, updateUserPoints } from '../lib/auth'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import BackArrow from '../components/BackArrow'
 
 interface ShopItem {
   id: string
@@ -622,6 +623,9 @@ export default function ShopPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 p-8">
+      {/* Back Arrow */}
+      <BackArrow href="/village" />
+      
       {/* Points Display */}
       <div className="max-w-7xl mx-auto mb-8">
         <div className="bg-white rounded-lg shadow-lg p-4 flex justify-between items-center">

@@ -252,6 +252,49 @@ const changePasswordHandler: AsyncRequestHandler = async (req, res) => {
   }
 }
 
+// Sync password from Supabase reset
+const syncPasswordHandler: AsyncRequestHandler = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validate inputs
+    if (!email || !password) {
+      res.status(400).json({ error: 'Email and password are required' });
+      return;
+    }
+
+    // Find user by email
+    const { data: user, error: userError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .single();
+
+    if (userError || !user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Update the password in the database
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ password: hashedPassword })
+      .eq('id', user.id);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    res.json({ success: true, message: 'Password synchronized successfully' });
+  } catch (error) {
+    console.error('Password sync error:', error);
+    res.status(500).json({ error: 'Failed to sync password' });
+  }
+};
+
 // Delete account
 const deleteAccountHandler: AsyncRequestHandler = async (req, res) => {
   try {
@@ -308,6 +351,9 @@ app.put('/api/auth/update-points', requireAuth, updatePointsHandler)
 app.put('/api/auth/update-profile', requireAuth, updateProfileHandler)
 app.post('/api/auth/change-password', requireAuth, changePasswordHandler)
 app.delete('/api/auth/delete-account', requireAuth, deleteAccountHandler)
+
+// Password reset sync route - no auth required as it's coming from password reset flow
+app.post('/api/auth/sync-password', syncPasswordHandler)
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`)

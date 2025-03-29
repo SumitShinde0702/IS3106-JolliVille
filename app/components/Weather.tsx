@@ -6,15 +6,60 @@ interface WeatherProps {
 }
 
 export default function Weather({ gridSize, onWeatherChange }: WeatherProps) {
+  // Get initial values from localStorage or use defaults
   const [currentWeather, setCurrentWeather] = useState<'sunny' | 'rainy' | 'windy' | 'nothing'>('sunny')
   const [isManualMode, setIsManualMode] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [audioInitialized, setAudioInitialized] = useState(false)
   
   // Audio refs
   const rainAudioRef = useRef<HTMLAudioElement | null>(null)
   const windAudioRef = useRef<HTMLAudioElement | null>(null)
   const birdsAudioRef = useRef<HTMLAudioElement | null>(null)
+
+  // Initialize audio elements
+  useEffect(() => {
+    if (rainAudioRef.current && windAudioRef.current && birdsAudioRef.current) {
+      // Set audio properties
+      rainAudioRef.current.loop = true
+      windAudioRef.current.loop = true
+      birdsAudioRef.current.loop = true
+      
+      rainAudioRef.current.volume = 0.3
+      windAudioRef.current.volume = 0.2
+      birdsAudioRef.current.volume = 0.2
+      
+      // Mark as initialized
+      setAudioInitialized(true)
+    }
+  }, [])
+
+  // Load saved state from localStorage on component mount
+  useEffect(() => {
+    const savedWeather = localStorage.getItem('villageWeather')
+    const savedMuted = localStorage.getItem('villageWeatherMuted')
+    const savedManualMode = localStorage.getItem('villageWeatherManual')
+    const savedCollapsed = localStorage.getItem('villageWeatherCollapsed')
+    
+    if (savedWeather) {
+      const weather = savedWeather as 'sunny' | 'rainy' | 'windy' | 'nothing'
+      setCurrentWeather(weather)
+      onWeatherChange(weather)
+    }
+    
+    if (savedMuted) {
+      setIsMuted(savedMuted === 'true')
+    }
+    
+    if (savedManualMode) {
+      setIsManualMode(savedManualMode === 'true')
+    }
+    
+    if (savedCollapsed) {
+      setIsCollapsed(savedCollapsed === 'true')
+    }
+  }, [onWeatherChange])
 
   // Handle weather change and sound effects
   const handleWeatherChange = (weather: 'sunny' | 'rainy' | 'windy' | 'nothing') => {
@@ -28,36 +73,56 @@ export default function Weather({ gridSize, onWeatherChange }: WeatherProps) {
       switch (weather) {
         case 'rainy':
           if (rainAudioRef.current) {
-            rainAudioRef.current.loop = true
-            rainAudioRef.current.volume = 0.3
-            rainAudioRef.current.play()
+            rainAudioRef.current.currentTime = 0
+            const playPromise = rainAudioRef.current.play()
+            if (playPromise !== undefined) {
+              playPromise.catch(e => {
+                console.warn('Audio playback failed:', e)
+              })
+            }
           }
           break
         case 'windy':
           if (windAudioRef.current) {
-            windAudioRef.current.loop = true
-            windAudioRef.current.volume = 0.2
-            windAudioRef.current.play()
+            windAudioRef.current.currentTime = 0
+            const playPromise = windAudioRef.current.play()
+            if (playPromise !== undefined) {
+              playPromise.catch(e => {
+                console.warn('Audio playback failed:', e)
+              })
+            }
           }
           break
         case 'sunny':
           if (birdsAudioRef.current) {
-            birdsAudioRef.current.loop = true
-            birdsAudioRef.current.volume = 0.2
-            birdsAudioRef.current.play()
+            birdsAudioRef.current.currentTime = 0
+            const playPromise = birdsAudioRef.current.play()
+            if (playPromise !== undefined) {
+              playPromise.catch(e => {
+                console.warn('Audio playback failed:', e)
+              })
+            }
           }
           break
       }
     }
 
+    // Save to localStorage
+    localStorage.setItem('villageWeather', weather)
+    
     setCurrentWeather(weather)
     onWeatherChange(weather)
   }
 
   // Handle mute toggle
   const handleMuteToggle = () => {
-    setIsMuted(!isMuted)
-    if (!isMuted) {
+    const newMutedState = !isMuted
+    setIsMuted(newMutedState)
+    
+    // Save mute state to localStorage
+    localStorage.setItem('villageWeatherMuted', newMutedState.toString())
+    
+    if (newMutedState) {
       // Stop all sounds when muting
       if (rainAudioRef.current) rainAudioRef.current.pause()
       if (windAudioRef.current) windAudioRef.current.pause()
@@ -66,17 +131,90 @@ export default function Weather({ gridSize, onWeatherChange }: WeatherProps) {
       // Resume current weather sound when unmuting
       switch (currentWeather) {
         case 'rainy':
-          if (rainAudioRef.current) rainAudioRef.current.play()
+          if (rainAudioRef.current) {
+            const playPromise = rainAudioRef.current.play()
+            if (playPromise !== undefined) {
+              playPromise.catch(e => {
+                console.warn('Audio playback failed:', e)
+              })
+            }
+          }
           break
         case 'windy':
-          if (windAudioRef.current) windAudioRef.current.play()
+          if (windAudioRef.current) {
+            const playPromise = windAudioRef.current.play()
+            if (playPromise !== undefined) {
+              playPromise.catch(e => {
+                console.warn('Audio playback failed:', e)
+              })
+            }
+          }
           break
         case 'sunny':
-          if (birdsAudioRef.current) birdsAudioRef.current.play()
+          if (birdsAudioRef.current) {
+            const playPromise = birdsAudioRef.current.play()
+            if (playPromise !== undefined) {
+              playPromise.catch(e => {
+                console.warn('Audio playback failed:', e)
+              })
+            }
+          }
           break
       }
     }
   }
+  
+  // Handle manual mode toggle with proper audio continuation
+  const handleManualModeToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newManualMode = e.target.checked
+    setIsManualMode(newManualMode)
+    localStorage.setItem('villageWeatherManual', newManualMode.toString())
+    
+    // Explicitly ensure current audio continues playing when toggling manual mode
+    // This prevents the audio from stopping when manual mode is activated
+    if (!isMuted && currentWeather !== 'nothing') {
+      setTimeout(() => {
+        switch (currentWeather) {
+          case 'rainy':
+            if (rainAudioRef.current) {
+              // Don't reset currentTime to maintain position
+              const playPromise = rainAudioRef.current.play()
+              if (playPromise !== undefined) {
+                playPromise.catch(e => {
+                  console.warn('Audio playback failed:', e)
+                })
+              }
+            }
+            break
+          case 'windy':
+            if (windAudioRef.current) {
+              const playPromise = windAudioRef.current.play()
+              if (playPromise !== undefined) {
+                playPromise.catch(e => {
+                  console.warn('Audio playback failed:', e)
+                })
+              }
+            }
+            break
+          case 'sunny':
+            if (birdsAudioRef.current) {
+              const playPromise = birdsAudioRef.current.play()
+              if (playPromise !== undefined) {
+                playPromise.catch(e => {
+                  console.warn('Audio playback failed:', e)
+                })
+              }
+            }
+            break
+        }
+      }, 50)
+    }
+  }
+  
+  // Save collapsed state when it changes
+  useEffect(() => {
+    localStorage.setItem('villageWeatherCollapsed', isCollapsed.toString())
+  }, [isCollapsed])
   
   // Change weather randomly every 30-60 seconds
   useEffect(() => {
@@ -100,6 +238,123 @@ export default function Weather({ gridSize, onWeatherChange }: WeatherProps) {
       if (birdsAudioRef.current) birdsAudioRef.current.pause()
     }
   }, [isManualMode])
+
+  // Apply weather sounds when component is mounted or when visibility changes
+  useEffect(() => {
+    // Function to handle visibility change
+    const handleVisibilityChange = () => {
+      if (!isMuted && audioInitialized) {
+        if (document.visibilityState === 'visible') {
+          // Check if any audio is already playing
+          const isAnyPlaying = 
+            (rainAudioRef.current && !rainAudioRef.current.paused) ||
+            (windAudioRef.current && !windAudioRef.current.paused) ||
+            (birdsAudioRef.current && !birdsAudioRef.current.paused);
+          
+          // Only restart if nothing is playing
+          if (!isAnyPlaying && currentWeather !== 'nothing') {
+            // Stop all audio first to avoid overlapping
+            if (rainAudioRef.current) rainAudioRef.current.pause()
+            if (windAudioRef.current) windAudioRef.current.pause()
+            if (birdsAudioRef.current) birdsAudioRef.current.pause()
+            
+            setTimeout(() => {
+              switch (currentWeather) {
+                case 'rainy':
+                  if (rainAudioRef.current) {
+                    rainAudioRef.current.currentTime = 0; // Reset to beginning for better experience
+                    const playPromise = rainAudioRef.current.play()
+                    if (playPromise !== undefined) {
+                      playPromise.catch(e => {
+                        console.warn('Audio playback failed:', e)
+                      })
+                    }
+                  }
+                  break
+                case 'windy':
+                  if (windAudioRef.current) {
+                    windAudioRef.current.currentTime = 0;
+                    const playPromise = windAudioRef.current.play()
+                    if (playPromise !== undefined) {
+                      playPromise.catch(e => {
+                        console.warn('Audio playback failed:', e)
+                      })
+                    }
+                  }
+                  break
+                case 'sunny':
+                  if (birdsAudioRef.current) {
+                    birdsAudioRef.current.currentTime = 0;
+                    const playPromise = birdsAudioRef.current.play()
+                    if (playPromise !== undefined) {
+                      playPromise.catch(e => {
+                        console.warn('Audio playback failed:', e)
+                      })
+                    }
+                  }
+                  break
+              }
+            }, 100)
+          }
+        }
+      }
+    }
+
+    // Apply initial sound
+    if (audioInitialized && !isMuted && currentWeather !== 'nothing') {
+      setTimeout(() => {
+        // Check if any audio is already playing
+        const isAnyPlaying = 
+          (rainAudioRef.current && !rainAudioRef.current.paused) ||
+          (windAudioRef.current && !windAudioRef.current.paused) ||
+          (birdsAudioRef.current && !birdsAudioRef.current.paused);
+        
+        // Only start if nothing is playing
+        if (!isAnyPlaying) {
+          switch (currentWeather) {
+            case 'rainy':
+              if (rainAudioRef.current) {
+                const playPromise = rainAudioRef.current.play()
+                if (playPromise !== undefined) {
+                  playPromise.catch(e => {
+                    console.warn('Audio playback failed:', e)
+                  })
+                }
+              }
+              break
+            case 'windy':
+              if (windAudioRef.current) {
+                const playPromise = windAudioRef.current.play()
+                if (playPromise !== undefined) {
+                  playPromise.catch(e => {
+                    console.warn('Audio playback failed:', e)
+                  })
+                }
+              }
+              break
+            case 'sunny':
+              if (birdsAudioRef.current) {
+                const playPromise = birdsAudioRef.current.play()
+                if (playPromise !== undefined) {
+                  playPromise.catch(e => {
+                    console.warn('Audio playback failed:', e)
+                  })
+                }
+              }
+              break
+          }
+        }
+      }, 300)
+    }
+
+    // Add visibility change event listener
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    // Remove event listener on cleanup
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [currentWeather, isMuted, audioInitialized])
 
   // Generate wind particles - more quantity and better visibility
   const windParticles = Array.from({ length: 60 }, (_, i) => ({
@@ -207,7 +462,7 @@ export default function Weather({ gridSize, onWeatherChange }: WeatherProps) {
                   <input
                     type="checkbox"
                     checked={isManualMode}
-                    onChange={(e) => setIsManualMode(e.target.checked)}
+                    onChange={handleManualModeToggle}
                     className="sr-only peer"
                   />
                   <div className="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>

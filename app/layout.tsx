@@ -22,6 +22,21 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} antialiased vsc-initialized`}>
         <AuthProvider>
+          {/* 
+            In a Supabase implementation, we would add a listener here:
+            
+            useEffect(() => {
+              const { data: { subscription } } = supabase.auth.onAuthStateChange(
+                async (event, session) => {
+                  if (event === "PASSWORD_RECOVERY") {
+                    // Redirect to reset password page
+                    router.push('/reset-password');
+                  }
+                }
+              )
+              return () => subscription.unsubscribe()
+            }, [router]);
+          */}
           <Navigation />
           <main className="min-h-screen">
             {children}

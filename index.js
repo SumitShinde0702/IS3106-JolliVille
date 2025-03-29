@@ -92,6 +92,22 @@ app.get("/admin/manageUsers", async (req, res) => {
     }
 });
 
+app.post('/api/auth/sync-password', async (req, res) => {
+  try {
+    const { email, password, supabase_token } = req.body;
+    
+    // Optional: Verify the Supabase token if needed
+    // This ensures only legitimate password resets can sync
+    
+    // Update password in your database
+    // Example: await db.users.updatePassword(email, password);
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Password sync error:', error);
+    res.status(500).json({ error: 'Failed to sync password' });
+  }
+});
 
 app.use(
     session({
@@ -103,9 +119,6 @@ app.use(
         },
     })
 );
-
-
-
 
 app.listen(port, () => {
  console.log(`Example app listening at http://localhost:${port}`);

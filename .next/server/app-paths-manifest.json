@@ -1,7 +1,8 @@
 {
-  "/profile/page": "app/profile/page.js",
-  "/register/page": "app/register/page.js",
   "/login/page": "app/login/page.js",
+  "/forgot-password/page": "app/forgot-password/page.js",
+  "/page": "app/page.js",
   "/village/page": "app/village/page.js",
-  "/journal/page": "app/journal/page.js"
+  "/reset-password/page": "app/reset-password/page.js",
+  "/chatbot/page": "app/chatbot/page.js"
 }

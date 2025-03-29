@@ -1,3 +1,5 @@
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+
 const API_URL = 'http://localhost:3001/api'
 
 interface ApiError {
@@ -58,6 +60,78 @@ export async function signIn(email: string, password: string) {
     return { user: data.user, error: null }
   } catch (error) {
     return { user: null, error: error instanceof Error ? error.message : 'Failed to sign in' }
+  }
+}
+
+export async function resetPassword(email: string) {
+  try {
+    const supabase = createClientComponentClient()
+    
+    // Get the origin with protocol (e.g., http://localhost:3000)
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const redirectUrl = `${origin}/reset-password`
+    
+    console.log('Sending password reset to email:', email)
+    console.log('Using redirect URL:', redirectUrl)
+    
+    // Make sure this URL is added in Supabase Dashboard under:
+    // Authentication > URL Configuration > Redirect URLs
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl
+    })
+
+    if (error) {
+      console.error('Error sending reset email:', error.message)
+      throw error
+    }
+
+    console.log('Password reset email sent successfully')
+    return { data: true, error: null }
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return { 
+      data: null, 
+      error: error instanceof Error ? error.message : 'Failed to send password reset email' 
+    }
+  }
+}
+
+export async function updatePassword(password: string) {
+  try {
+    const supabase = createClientComponentClient()
+    
+    // Log current auth session for debugging
+    const { data: sessionData } = await supabase.auth.getSession()
+    console.log('Current session before update:', !!sessionData.session)
+    
+    const { error } = await supabase.auth.updateUser({
+      password: password
+    })
+
+    if (error) {
+      console.error('Update user error:', error)
+      throw error
+    }
+
+    // Just in case, also try the deprecated method if available
+    try {
+      // @ts-ignore - This is for compatibility with older versions
+      if (typeof supabase.auth.update === 'function') {
+        // @ts-ignore
+        await supabase.auth.update({ password })
+      }
+    } catch (err) {
+      console.log('Ignored legacy update error:', err)
+      // Ignore error from this fallback attempt
+    }
+
+    return { data: true, error: null }
+  } catch (error) {
+    console.error('Update password error:', error);
+    return { 
+      data: null, 
+      error: error instanceof Error ? error.message : 'Failed to update password' 
+    }
   }
 }
 

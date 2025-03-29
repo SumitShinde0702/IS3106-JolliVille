@@ -922,7 +922,10 @@ export default function VillagePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex">
       {/* Weather Component - Now in the pink region */}
-      <Weather gridSize={currentGridSize} onWeatherChange={setCurrentWeather} />
+      <Weather 
+        gridSize={currentGridSize}
+        onWeatherChange={setCurrentWeather}
+      />
 
       {/* Sidebar with Owned Items */}
       <div 
@@ -1109,57 +1112,57 @@ export default function VillagePage() {
 
                       {/* Grid Items */}
                       {Array.from({ length: currentGridSize * currentGridSize }).map((_, index) => (
-                        <div
-                          key={index}
-                          className="aspect-square relative cursor-pointer hover:brightness-110 z-10"
-                          onDragOver={(e) => {
-                            e.preventDefault()
-                            e.currentTarget.classList.add('brightness-110')
-                          }}
-                          onDragLeave={(e) => {
-                            e.currentTarget.classList.remove('brightness-110')
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault()
-                            e.currentTarget.classList.remove('brightness-110')
-                            handleDrop(e, index)
-                          }}
-                        >
-                          {/* Background Tile */}
-                          <div className="absolute inset-0">
-                            <Image
-                              src={getTilePath(tileNumbers[index])}
-                              alt="Tile"
-                              fill
-                              sizes="(max-width: 768px) 50px, 100px"
-                              className="object-cover"
-                            />
-                          </div>
-                          
-                          {/* Item Overlay */}
-                          {gridItems[index] && (
-                            <div 
-                              className="absolute inset-0 flex items-center justify-center z-20"
-                              draggable
-                              onDragStart={(e) => handleDragStart(e, gridItems[index]!, index)}
-                            >
-                              <div className={`relative w-full h-full transform ${getItemSizeClass(gridItems[index]!.id)}`}>
-                                <Image
-                                  src={gridItems[index]!.image}
-                                  alt={gridItems[index]!.name}
-                                  fill
-                                  sizes="(max-width: 768px) 50px, 100px"
-                                  className="object-contain"
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                  <div
+                    key={index}
+                            className="aspect-square relative cursor-pointer hover:brightness-110 z-10"
+                    onDragOver={(e) => {
+                      e.preventDefault()
+                      e.currentTarget.classList.add('brightness-110')
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.classList.remove('brightness-110')
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      e.currentTarget.classList.remove('brightness-110')
+                      handleDrop(e, index)
+                    }}
+                  >
+                    {/* Background Tile */}
+                    <div className="absolute inset-0">
+                      <Image
+                        src={getTilePath(tileNumbers[index])}
+                        alt="Tile"
+                        fill
+                        sizes="(max-width: 768px) 50px, 100px"
+                        className="object-cover"
+                      />
                     </div>
+                    
+                    {/* Item Overlay */}
+                    {gridItems[index] && (
+                      <div 
+                                className="absolute inset-0 flex items-center justify-center z-20"
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, gridItems[index]!, index)}
+                      >
+                        <div className={`relative w-full h-full transform ${getItemSizeClass(gridItems[index]!.id)}`}>
+                          <Image
+                            src={gridItems[index]!.image}
+                            alt={gridItems[index]!.name}
+                            fill
+                            sizes="(max-width: 768px) 50px, 100px"
+                            className="object-contain"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </>
-              )}
+                ))}
+              </div>
+              </div>
+                  </>
+                )}
             </div>
           </div>
         </div>
