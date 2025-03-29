@@ -1015,13 +1015,17 @@ export default function VillagePage() {
                 <button
                   onClick={handleExpandPlot}
                   disabled={resources.plotSize >= MAX_PLOT_SIZE || resources.points < calculateExpansionCost(resources.plotSize)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium group relative ${
                     resources.plotSize >= MAX_PLOT_SIZE || resources.points < calculateExpansionCost(resources.plotSize)
                       ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                       : 'bg-pink-600 text-white hover:bg-pink-700'
                   }`}
                 >
                   Expand Plot ({calculateExpansionCost(resources.plotSize)} points)
+                  <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-gray-800 text-white text-xs rounded px-2 py-1 -top-12 left-1/2 transform -translate-x-1/2 w-48 z-50 shadow-lg">
+                    <div className="absolute w-2 h-2 bg-gray-800 transform rotate-45 left-1/2 -translate-x-1/2 bottom-[-4px]"></div>
+                    Note: Expanding will increase your grid size, which may slightly change the appearance of your layout.
+                  </div>
                 </button>
               </div>
             </div>
