@@ -2,12 +2,14 @@ import React, { useEffect, useState, useRef } from 'react'
 
 interface WeatherProps {
   gridSize: number
+  onWeatherChange: (weather: 'sunny' | 'rainy' | 'windy' | 'nothing') => void
 }
 
-export default function Weather({ gridSize }: WeatherProps) {
+export default function Weather({ gridSize, onWeatherChange }: WeatherProps) {
   const [currentWeather, setCurrentWeather] = useState<'sunny' | 'rainy' | 'windy' | 'nothing'>('sunny')
   const [isManualMode, setIsManualMode] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(false)
   
   // Audio refs
   const rainAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -16,42 +18,40 @@ export default function Weather({ gridSize }: WeatherProps) {
 
   // Handle weather change and sound effects
   const handleWeatherChange = (weather: 'sunny' | 'rainy' | 'windy' | 'nothing') => {
-    // Only allow weather changes if in manual mode or if it's an automatic change
-    if (!isManualMode || weather !== currentWeather) {
-      // Stop all sounds first
-      if (rainAudioRef.current) rainAudioRef.current.pause()
-      if (windAudioRef.current) windAudioRef.current.pause()
-      if (birdsAudioRef.current) birdsAudioRef.current.pause()
+    // Stop all sounds first
+    if (rainAudioRef.current) rainAudioRef.current.pause()
+    if (windAudioRef.current) windAudioRef.current.pause()
+    if (birdsAudioRef.current) birdsAudioRef.current.pause()
 
-      // Start new weather sound if not muted
-      if (!isMuted) {
-        switch (weather) {
-          case 'rainy':
-            if (rainAudioRef.current) {
-              rainAudioRef.current.loop = true
-              rainAudioRef.current.volume = 0.3
-              rainAudioRef.current.play()
-            }
-            break
-          case 'windy':
-            if (windAudioRef.current) {
-              windAudioRef.current.loop = true
-              windAudioRef.current.volume = 0.2
-              windAudioRef.current.play()
-            }
-            break
-          case 'sunny':
-            if (birdsAudioRef.current) {
-              birdsAudioRef.current.loop = true
-              birdsAudioRef.current.volume = 0.2
-              birdsAudioRef.current.play()
-            }
-            break
-        }
+    // Start new weather sound if not muted
+    if (!isMuted) {
+      switch (weather) {
+        case 'rainy':
+          if (rainAudioRef.current) {
+            rainAudioRef.current.loop = true
+            rainAudioRef.current.volume = 0.3
+            rainAudioRef.current.play()
+          }
+          break
+        case 'windy':
+          if (windAudioRef.current) {
+            windAudioRef.current.loop = true
+            windAudioRef.current.volume = 0.2
+            windAudioRef.current.play()
+          }
+          break
+        case 'sunny':
+          if (birdsAudioRef.current) {
+            birdsAudioRef.current.loop = true
+            birdsAudioRef.current.volume = 0.2
+            birdsAudioRef.current.play()
+          }
+          break
       }
-
-      setCurrentWeather(weather)
     }
+
+    setCurrentWeather(weather)
+    onWeatherChange(weather)
   }
 
   // Handle mute toggle
@@ -80,25 +80,17 @@ export default function Weather({ gridSize }: WeatherProps) {
   
   // Change weather randomly every 30-60 seconds
   useEffect(() => {
-    if (isManualMode) {
-      // Clear any existing interval when entering manual mode
-      return
-    }
+    if (isManualMode) return // Don't auto-change if in manual mode
     
     const changeWeather = () => {
       const weathers: ('sunny' | 'rainy' | 'windy' | 'nothing')[] = ['sunny', 'rainy', 'windy', 'nothing']
-      // Don't select the current weather to ensure a change
-      const availableWeathers = weathers.filter(w => w !== currentWeather)
-      const newWeather = availableWeathers[Math.floor(Math.random() * availableWeathers.length)]
+      const newWeather = weathers[Math.floor(Math.random() * weathers.length)]
       handleWeatherChange(newWeather)
     }
     
-    // Initial weather change
-    if (!isManualMode) {
+    const interval = setInterval(() => {
       changeWeather()
-    }
-    
-    const interval = setInterval(changeWeather, 30000 + Math.random() * 30000)
+    }, 30000 + Math.random() * 30000)
     
     return () => {
       clearInterval(interval)
@@ -107,38 +99,24 @@ export default function Weather({ gridSize }: WeatherProps) {
       if (windAudioRef.current) windAudioRef.current.pause()
       if (birdsAudioRef.current) birdsAudioRef.current.pause()
     }
-  }, [isManualMode, currentWeather]) // Add currentWeather as dependency
+  }, [isManualMode])
 
-  // Generate wind particles
-  const windParticles = Array.from({ length: 30 }, (_, i) => ({
+  // Generate wind particles - more quantity and better visibility
+  const windParticles = Array.from({ length: 60 }, (_, i) => ({
     id: i,
-    delay: Math.random() * 5,
-    duration: 3 + Math.random() * 2,
+    delay: Math.random() * 3,
+    duration: 2 + Math.random() * 2,
     top: Math.random() * 100,
-    size: 8 + Math.random() * 8
+    size: 15 + Math.random() * 20
   }))
 
   // Generate raindrops
-  const raindrops = Array.from({ length: 100 }, (_, i) => ({
+  const raindrops = Array.from({ length: 150 }, (_, i) => ({
     id: i,
     delay: Math.random() * 2,
     left: Math.random() * 100,
-    duration: 0.5 + Math.random() * 0.3
+    duration: 0.4 + Math.random() * 0.3
   }))
-
-  // Update manual mode toggle to handle weather state
-  const handleManualModeToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newManualMode = e.target.checked
-    setIsManualMode(newManualMode)
-    
-    // If turning off manual mode, trigger an immediate weather change
-    if (!newManualMode) {
-      const weathers: ('sunny' | 'rainy' | 'windy' | 'nothing')[] = ['sunny', 'rainy', 'windy', 'nothing']
-      const availableWeathers = weathers.filter(w => w !== currentWeather)
-      const newWeather = availableWeathers[Math.floor(Math.random() * availableWeathers.length)]
-      handleWeatherChange(newWeather)
-    }
-  }
 
   return (
     <>
@@ -147,212 +125,114 @@ export default function Weather({ gridSize }: WeatherProps) {
       <audio ref={windAudioRef} src="/sounds/wind.mp3" preload="auto" />
       <audio ref={birdsAudioRef} src="/sounds/birds.mp3" preload="auto" />
 
-      {/* Weather Controls Panel - Now positioned on the right side of the grid */}
-      <div className="absolute -right-52 top-0 w-48 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-        <div className="p-3 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="text-sm font-medium text-gray-700">Weather</h3>
+      {/* Weather Controls Panel */}
+      <div
+        className={`fixed right-0 top-20 bg-white/80 backdrop-blur-md rounded-l-xl shadow-lg z-[9999] transition-all duration-300 ease-in-out ${
+          isCollapsed ? 'w-12' : 'w-48'
+        }`}
+      >
+        <div className="p-3 flex items-center justify-between border-b border-gray-200">
+          {!isCollapsed && <h3 className="text-lg font-semibold text-gray-700">Weather</h3>}
           <button
-            onClick={handleMuteToggle}
-            className={`p-1.5 rounded-lg transition-colors ${
-              isMuted 
-                ? 'bg-red-100 text-red-600 hover:bg-red-200' 
-                : 'bg-green-100 text-green-600 hover:bg-green-200'
-            }`}
-            title={isMuted ? "Unmute sounds" : "Mute sounds"}
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-1 rounded-md hover:bg-gray-200 transition-colors"
+            aria-label={isCollapsed ? "Expand weather controls" : "Collapse weather controls"}
           >
-            {isMuted ? '🔇' : '🔊'}
+            {isCollapsed ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+              </svg>
+            )}
           </button>
         </div>
 
-        <div className="p-3">
-          <div className="flex flex-col gap-2">
-            <button
-              onClick={() => handleWeatherChange('nothing')}
-              className={`p-2 rounded-lg transition-all ${
-                currentWeather === 'nothing' 
-                  ? 'bg-gray-100 text-gray-700 shadow-sm' 
-                  : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
-              }`}
-            >
-              ❌ Nothing
-            </button>
-            <button
-              onClick={() => handleWeatherChange('sunny')}
-              className={`p-2 rounded-lg transition-all ${
-                currentWeather === 'sunny' 
-                  ? 'bg-yellow-100 text-yellow-700 shadow-sm' 
-                  : 'bg-white text-yellow-600 hover:bg-yellow-50 border border-yellow-200'
-              }`}
-            >
-              ☀️ Sunny
-            </button>
-            <button
-              onClick={() => handleWeatherChange('rainy')}
-              className={`p-2 rounded-lg transition-all ${
-                currentWeather === 'rainy' 
-                  ? 'bg-blue-100 text-blue-700 shadow-sm' 
-                  : 'bg-white text-blue-600 hover:bg-blue-50 border border-blue-200'
-              }`}
-            >
-              🌧️ Rain
-            </button>
-            <button
-              onClick={() => handleWeatherChange('windy')}
-              className={`p-2 rounded-lg transition-all ${
-                currentWeather === 'windy' 
-                  ? 'bg-gray-100 text-gray-700 shadow-sm' 
-                  : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
-              }`}
-            >
-              💨 Wind
-            </button>
-
-            <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
-              <input
-                type="checkbox"
-                checked={isManualMode}
-                onChange={handleManualModeToggle}
-                className="rounded border-gray-300 text-pink-600 focus:ring-pink-500"
-                id="manual-control"
-              />
-              <label htmlFor="manual-control" className="cursor-pointer">Manual Control</label>
+        {!isCollapsed && (
+          <div className="p-3">
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => handleWeatherChange('sunny')}
+                className={`w-full px-4 py-2 rounded-lg flex items-center justify-between ${
+                  currentWeather === 'sunny' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <span>Sunny</span>
+                <span className="text-xl">☀️</span>
+              </button>
+              
+              <button
+                onClick={() => handleWeatherChange('rainy')}
+                className={`w-full px-4 py-2 rounded-lg flex items-center justify-between ${
+                  currentWeather === 'rainy' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <span>Rain</span>
+                <span className="text-xl">🌧️</span>
+              </button>
+              
+              <button
+                onClick={() => handleWeatherChange('windy')}
+                className={`w-full px-4 py-2 rounded-lg flex items-center justify-between ${
+                  currentWeather === 'windy' ? 'bg-teal-100 text-teal-800' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <span>Wind</span>
+                <span className="text-xl">💨</span>
+              </button>
+              
+              <button
+                onClick={() => handleWeatherChange('nothing')}
+                className={`w-full px-4 py-2 rounded-lg flex items-center justify-between ${
+                  currentWeather === 'nothing' ? 'bg-gray-300 text-gray-800' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <span>Nothing</span>
+                <span className="text-xl">❌</span>
+              </button>
+              
+              <div className="flex justify-between items-center mt-2">
+                <button
+                  onClick={handleMuteToggle}
+                  className={`px-3 py-1 rounded-lg text-sm ${
+                    isMuted ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                  }`}
+                >
+                  {isMuted ? '🔇 Unmute' : '🔊 Mute'}
+                </button>
+                
+                <label className="inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isManualMode}
+                    onChange={(e) => setIsManualMode(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                  <span className="ml-2 text-xs text-gray-600">Manual</span>
+                </label>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Weather Effects Container */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Sun */}
-        {currentWeather === 'sunny' && (
-          <div className="absolute top-[-100px] right-[-100px] w-[300px] h-[300px] pointer-events-none">
-            <div className="sun pointer-events-none"></div>
-            <div className="sun-rays pointer-events-none"></div>
-          </div>
-        )}
+      <style jsx>{`
+        /* All weather effects are defined but not rendered - 
+           They are passed to page.tsx for rendering in the grid container */
+        
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); opacity: 0.9; }
+          50% { transform: scale(1.1); opacity: 1; }
+        }
 
-        {/* Wind particles */}
-        {currentWeather === 'windy' && windParticles.map(particle => (
-          <div
-            key={particle.id}
-            className="absolute wind-particle pointer-events-none"
-            style={{
-              '--delay': `${particle.delay}s`,
-              '--duration': `${particle.duration}s`,
-              '--top': `${particle.top}%`,
-              '--size': `${particle.size}px`
-            } as React.CSSProperties}
-          />
-        ))}
-
-        {/* Rain */}
-        {currentWeather === 'rainy' && (
-          <>
-            <div className="rain-overlay pointer-events-none"></div>
-            {raindrops.map(drop => (
-              <div
-                key={drop.id}
-                className="absolute raindrop pointer-events-none"
-                style={{
-                  '--delay': `${drop.delay}s`,
-                  '--left': `${drop.left}%`,
-                  '--duration': `${drop.duration}s`
-                } as React.CSSProperties}
-              />
-            ))}
-          </>
-        )}
-
-        <style jsx>{`
-          .sun {
-            position: absolute;
-            width: 100px;
-            height: 100px;
-            background: radial-gradient(circle at center, #FFD700, #FFA500);
-            border-radius: 50%;
-            box-shadow: 0 0 50px #FFD700;
-            animation: pulse 4s ease-in-out infinite;
-            opacity: 0.6;
-          }
-
-          .sun-rays {
-            position: absolute;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle at center, rgba(255, 215, 0, 0.2) 0%, transparent 70%);
-            animation: rotate 20s linear infinite;
-          }
-
-          .rain-overlay {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(180deg, rgba(146, 167, 207, 0.03) 0%, rgba(146, 167, 207, 0.08) 100%);
-          }
-
-          .raindrop {
-            position: absolute;
-            width: 3px;
-            height: 25px;
-            background: linear-gradient(transparent, rgba(174, 198, 242, 0.5));
-            left: var(--left);
-            top: -25px;
-            animation: rain var(--duration) linear var(--delay) infinite;
-            border-radius: 999px;
-          }
-
-          .wind-particle {
-            width: var(--size);
-            height: 3px;
-            background: rgba(255, 247, 237, 0.4);
-            border-radius: 999px;
-            top: var(--top);
-            left: -10px;
-            animation: wind var(--duration) ease-in-out var(--delay) infinite;
-            box-shadow: 0 0 3px rgba(255, 247, 237, 0.2);
-          }
-
-          @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.6; }
-            50% { transform: scale(1.1); opacity: 0.7; }
-          }
-
-          @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-
-          @keyframes wind {
-            0% {
-              transform: translateX(-10px) rotate(0deg) scaleX(1);
-              opacity: 0;
-            }
-            5% { opacity: 0.5; }
-            25% {
-              transform: translateX(${gridSize * 25}px) rotate(15deg) scaleX(2);
-            }
-            50% {
-              transform: translateX(${gridSize * 50}px) rotate(-15deg) scaleX(1.5);
-            }
-            75% {
-              transform: translateX(${gridSize * 75}px) rotate(15deg) scaleX(2);
-            }
-            95% { opacity: 0.5; }
-            100% {
-              transform: translateX(${gridSize * 100 + 10}px) rotate(0deg) scaleX(1);
-              opacity: 0;
-            }
-          }
-
-          @keyframes rain {
-            from {
-              transform: translateY(-25px) rotate(15deg) scaleY(1);
-            }
-            to {
-              transform: translateY(${gridSize * 100 + 25}px) rotate(15deg) scaleY(1.2);
-            }
-          }
-        `}</style>
-      </div>
+        @keyframes rotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </>
   )
 } 

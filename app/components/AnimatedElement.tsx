@@ -60,8 +60,8 @@ export default function AnimatedElement({
   }
 
   // Convert to pixels
-  const pxX = (x: number) => (x * 800) / 100
-  const pxY = (y: number) => (y * 800) / 100
+  const pxX = (x: number) => (x * 800) / gridSize
+  const pxY = (y: number) => (y * 800) / gridSize
 
   return (
     <div
@@ -76,7 +76,8 @@ export default function AnimatedElement({
         imageRendering: 'pixelated',
         transform: `scale(${scale}) ${dx < 0 ? 'scaleX(-1)' : ''}`,
         transformOrigin: 'center',
-        zIndex: 10
+        zIndex: 15,
+        pointerEvents: 'none'
       }}
       className={`character-${uniqueId}`}
     >
