@@ -10,6 +10,7 @@ interface ShopItem {
   name: string
   image: string
   category: 'houses' | 'tents' | 'decor' | 'archer-towers'
+  subCategory?: 'greenery' | 'stones' | 'trees' | 'general'
   price: number
   description: string
   isStarter?: boolean
@@ -70,76 +71,77 @@ const initialItems: ShopItem[] = [
   { id: 'tower-7', name: 'Elite Tower', image: '/village-items/archer-towers/7.png', category: 'archer-towers', price: 500, description: 'An elite defensive tower' },
   
   // Decor Items - Based on visual complexity and rarity
-  { id: 'decor-1', name: 'Simple Ornament', image: '/village-items/decor/decor_1.png', category: 'decor', price: 25, description: 'A basic decorative item', isStarter: true },
-  { id: 'decor-2', name: 'Elegant Ornament', image: '/village-items/decor/decor_2.png', category: 'decor', price: 30, description: 'A refined decorative piece' },
-  { id: 'decor-3', name: 'Charming Decoration', image: '/village-items/decor/decor_3.png', category: 'decor', price: 35, description: 'A charming decorative item' },
-  { id: 'decor-4', name: 'Lovely Ornament', image: '/village-items/decor/decor_4.png', category: 'decor', price: 40, description: 'A lovely decorative piece' },
-  { id: 'decor-5', name: 'Fancy Decoration', image: '/village-items/decor/decor_5.png', category: 'decor', price: 45, description: 'A fancy decorative item' },
-  { id: 'decor-6', name: 'Beautiful Ornament', image: '/village-items/decor/decor_6.png', category: 'decor', price: 50, description: 'A beautiful decorative piece' },
-  { id: 'decor-7', name: 'Exquisite Decoration', image: '/village-items/decor/decor_7.png', category: 'decor', price: 55, description: 'An exquisite decorative item' },
-  { id: 'decor-8', name: 'Luxurious Ornament', image: '/village-items/decor/decor_8.png', category: 'decor', price: 60, description: 'A luxurious decorative piece' },
-  { id: 'decor-9', name: 'Premium Decoration', image: '/village-items/decor/decor_9.png', category: 'decor', price: 65, description: 'A premium decorative item' },
-  { id: 'decor-10', name: 'Majestic Ornament', image: '/village-items/decor/decor_10.png', category: 'decor', price: 70, description: 'A majestic decorative piece' },
-  { id: 'decor-11', name: 'Royal Decoration', image: '/village-items/decor/decor_11.png', category: 'decor', price: 75, description: 'A royal decorative item' },
-  { id: 'decor-12', name: 'Imperial Ornament', image: '/village-items/decor/decor_12.png', category: 'decor', price: 80, description: 'An imperial decorative piece' },
-  { id: 'decor-13', name: 'Mystical Decoration', image: '/village-items/decor/decor_13.png', category: 'decor', price: 85, description: 'A mystical decorative item' },
-  { id: 'decor-14', name: 'Enchanted Ornament', image: '/village-items/decor/decor_14.png', category: 'decor', price: 90, description: 'An enchanted decorative piece' },
-  { id: 'decor-15', name: 'Legendary Decoration', image: '/village-items/decor/decor_15.png', category: 'decor', price: 95, description: 'A legendary decorative item' },
-  { id: 'decor-16', name: 'Divine Ornament', image: '/village-items/decor/decor_16.png', category: 'decor', price: 100, description: 'A divine decorative piece' },
-  { id: 'decor-17', name: 'Celestial Decoration', image: '/village-items/decor/decor_17.png', category: 'decor', price: 105, description: 'A celestial decorative item' },
-  { id: 'decor-18', name: 'Ethereal Ornament', image: '/village-items/decor/decor_18.png', category: 'decor', price: 110, description: 'An ethereal decorative piece' },
-  { id: 'decor-19', name: 'Mystical Ornament', image: '/village-items/decor/decor_19.png', category: 'decor', price: 115, description: 'A mystical decorative item' },
-  { id: 'decor-20', name: 'Enchanted Decoration', image: '/village-items/decor/decor_20.png', category: 'decor', price: 120, description: 'An enchanted decorative piece' },
-  { id: 'decor-21', name: 'Legendary Ornament', image: '/village-items/decor/decor_21.png', category: 'decor', price: 125, description: 'A legendary decorative item' },
+  { id: 'decor-1', name: 'Simple Ornament', image: '/village-items/decor/decor_1.png', category: 'decor', subCategory: 'general', price: 25, description: 'A basic decorative item', isStarter: true },
+  { id: 'decor-2', name: 'Elegant Ornament', image: '/village-items/decor/decor_2.png', category: 'decor', subCategory: 'general', price: 30, description: 'A refined decorative piece' },
+  { id: 'decor-3', name: 'Charming Decoration', image: '/village-items/decor/decor_3.png', category: 'decor', subCategory: 'general', price: 35, description: 'A charming decorative item' },
+  { id: 'decor-4', name: 'Lovely Ornament', image: '/village-items/decor/decor_4.png', category: 'decor', subCategory: 'general', price: 40, description: 'A lovely decorative piece' },
+  { id: 'decor-5', name: 'Fancy Decoration', image: '/village-items/decor/decor_5.png', category: 'decor', subCategory: 'general', price: 45, description: 'A fancy decorative item' },
+  { id: 'decor-6', name: 'Beautiful Ornament', image: '/village-items/decor/decor_6.png', category: 'decor', subCategory: 'general', price: 50, description: 'A beautiful decorative piece' },
+  { id: 'decor-7', name: 'Exquisite Decoration', image: '/village-items/decor/decor_7.png', category: 'decor', subCategory: 'general', price: 55, description: 'An exquisite decorative item' },
+  { id: 'decor-8', name: 'Luxurious Ornament', image: '/village-items/decor/decor_8.png', category: 'decor', subCategory: 'general', price: 60, description: 'A luxurious decorative piece' },
+  { id: 'decor-9', name: 'Premium Decoration', image: '/village-items/decor/decor_9.png', category: 'decor', subCategory: 'general', price: 65, description: 'A premium decorative item' },
+  { id: 'decor-10', name: 'Majestic Ornament', image: '/village-items/decor/decor_10.png', category: 'decor', subCategory: 'general', price: 70, description: 'A majestic decorative piece' },
+  { id: 'decor-11', name: 'Royal Decoration', image: '/village-items/decor/decor_11.png', category: 'decor', subCategory: 'general', price: 75, description: 'A royal decorative item' },
+  { id: 'decor-12', name: 'Imperial Ornament', image: '/village-items/decor/decor_12.png', category: 'decor', subCategory: 'general', price: 80, description: 'An imperial decorative piece' },
+  { id: 'decor-13', name: 'Mystical Decoration', image: '/village-items/decor/decor_13.png', category: 'decor', subCategory: 'general', price: 85, description: 'A mystical decorative item' },
+  { id: 'decor-14', name: 'Enchanted Ornament', image: '/village-items/decor/decor_14.png', category: 'decor', subCategory: 'general', price: 90, description: 'An enchanted decorative piece' },
+  { id: 'decor-15', name: 'Legendary Decoration', image: '/village-items/decor/decor_15.png', category: 'decor', subCategory: 'general', price: 95, description: 'A legendary decorative item' },
+  { id: 'decor-16', name: 'Divine Ornament', image: '/village-items/decor/decor_16.png', category: 'decor', subCategory: 'general', price: 100, description: 'A divine decorative piece' },
+  { id: 'decor-17', name: 'Celestial Decoration', image: '/village-items/decor/decor_17.png', category: 'decor', subCategory: 'general', price: 105, description: 'A celestial decorative item' },
+  { id: 'decor-18', name: 'Ethereal Ornament', image: '/village-items/decor/decor_18.png', category: 'decor', subCategory: 'general', price: 110, description: 'An ethereal decorative piece' },
+  { id: 'decor-19', name: 'Mystical Ornament', image: '/village-items/decor/decor_19.png', category: 'decor', subCategory: 'general', price: 115, description: 'A mystical decorative item' },
+  { id: 'decor-20', name: 'Enchanted Decoration', image: '/village-items/decor/decor_20.png', category: 'decor', subCategory: 'general', price: 120, description: 'An enchanted decorative piece' },
+  { id: 'decor-21', name: 'Legendary Ornament', image: '/village-items/decor/decor_21.png', category: 'decor', subCategory: 'general', price: 125, description: 'A legendary decorative item' },
   
   // Trees - Based on size and visual complexity
-  { id: 'tree-1', name: 'Majestic Tree', image: '/village-items/decor/tree_1.png', category: 'decor', price: 40, description: 'A grand and majestic tree' },
-  { id: 'tree-2', name: 'Ancient Tree', image: '/village-items/decor/tree_2.png', category: 'decor', price: 45, description: 'An ancient and wise tree' },
-  { id: 'tree-3', name: 'Mystical Tree', image: '/village-items/decor/tree_3.png', category: 'decor', price: 50, description: 'A tree of mystical power' },
-  { id: 'tree-4', name: 'Enchanted Tree', image: '/village-items/decor/tree_4.png', category: 'decor', price: 55, description: 'A tree touched by magic' },
-  { id: 'tree-5', name: 'Magical Tree', image: '/village-items/decor/tree_5.png', category: 'decor', price: 60, description: 'A tree of magical essence' },
-  { id: 'tree-6', name: 'Sacred Tree', image: '/village-items/decor/tree_6.png', category: 'decor', price: 65, description: 'A tree of sacred power' },
-  { id: 'tree-7', name: 'Divine Tree', image: '/village-items/decor/tree_7.png', category: 'decor', price: 70, description: 'A tree blessed by divinity' },
-  { id: 'tree-8', name: 'Celestial Tree', image: '/village-items/decor/tree_8.png', category: 'decor', price: 75, description: 'A tree from the heavens' },
-  { id: 'tree-9', name: 'Ethereal Tree', image: '/village-items/decor/tree_9.png', category: 'decor', price: 80, description: 'A tree of ethereal beauty' },
-  { id: 'tree-10', name: 'Mythical Tree', image: '/village-items/decor/tree_10.png', category: 'decor', price: 85, description: 'A tree from myths' },
-  { id: 'tree-11', name: 'Legendary Tree', image: '/village-items/decor/tree_11.png', category: 'decor', price: 90, description: 'A tree of legendary status' },
-  { id: 'tree-12', name: 'Primordial Tree', image: '/village-items/decor/tree_12.png', category: 'decor', price: 95, description: 'A tree from the beginning of time' },
-  { id: 'tree-13', name: 'World Tree', image: '/village-items/decor/tree_13.png', category: 'decor', price: 100, description: 'A tree that holds the world' },
-  { id: 'tree-14', name: 'Cosmic Tree', image: '/village-items/decor/tree_14.png', category: 'decor', price: 105, description: 'A tree that spans the cosmos' },
+  { id: 'tree-1', name: 'Majestic Tree', image: '/village-items/decor/tree_1.png', category: 'decor', subCategory: 'trees', price: 40, description: 'A grand and majestic tree' },
+  { id: 'tree-2', name: 'Ancient Tree', image: '/village-items/decor/tree_2.png', category: 'decor', subCategory: 'trees', price: 45, description: 'An ancient and wise tree' },
+  { id: 'tree-3', name: 'Mystical Tree', image: '/village-items/decor/tree_3.png', category: 'decor', subCategory: 'trees', price: 50, description: 'A tree of mystical power' },
+  { id: 'tree-4', name: 'Enchanted Tree', image: '/village-items/decor/tree_4.png', category: 'decor', subCategory: 'trees', price: 55, description: 'A tree touched by magic' },
+  { id: 'tree-5', name: 'Magical Tree', image: '/village-items/decor/tree_5.png', category: 'decor', subCategory: 'trees', price: 60, description: 'A tree of magical essence' },
+  { id: 'tree-6', name: 'Sacred Tree', image: '/village-items/decor/tree_6.png', category: 'decor', subCategory: 'trees', price: 65, description: 'A tree of sacred power' },
+  { id: 'tree-7', name: 'Divine Tree', image: '/village-items/decor/tree_7.png', category: 'decor', subCategory: 'trees', price: 70, description: 'A tree blessed by divinity' },
+  { id: 'tree-8', name: 'Celestial Tree', image: '/village-items/decor/tree_8.png', category: 'decor', subCategory: 'trees', price: 75, description: 'A tree from the heavens' },
+  { id: 'tree-9', name: 'Ethereal Tree', image: '/village-items/decor/tree_9.png', category: 'decor', subCategory: 'trees', price: 80, description: 'A tree of ethereal beauty' },
+  { id: 'tree-10', name: 'Mythical Tree', image: '/village-items/decor/tree_10.png', category: 'decor', subCategory: 'trees', price: 85, description: 'A tree from myths' },
+  { id: 'tree-11', name: 'Legendary Tree', image: '/village-items/decor/tree_11.png', category: 'decor', subCategory: 'trees', price: 90, description: 'A tree of legendary status' },
+  { id: 'tree-12', name: 'Primordial Tree', image: '/village-items/decor/tree_12.png', category: 'decor', subCategory: 'trees', price: 95, description: 'A tree from the beginning of time' },
+  { id: 'tree-13', name: 'World Tree', image: '/village-items/decor/tree_13.png', category: 'decor', subCategory: 'trees', price: 100, description: 'A tree that holds the world' },
+  { id: 'tree-14', name: 'Cosmic Tree', image: '/village-items/decor/tree_14.png', category: 'decor', subCategory: 'trees', price: 105, description: 'A tree that spans the cosmos' },
   
   // Stones - Based on size and visual complexity
-  { id: 'stone-1', name: 'Simple Stone', image: '/village-items/decor/stones_1.png', category: 'decor', price: 20, description: 'A basic decorative stone' },
-  { id: 'stone-2', name: 'Mystical Stone', image: '/village-items/decor/stones_2.png', category: 'decor', price: 25, description: 'A stone of mystical power' },
-  { id: 'stone-3', name: 'Ancient Stone', image: '/village-items/decor/stones_3.png', category: 'decor', price: 30, description: 'A stone from ancient times' },
-  { id: 'stone-4', name: 'Magical Stone', image: '/village-items/decor/stones_4.png', category: 'decor', price: 35, description: 'A stone of magical essence' },
-  { id: 'stone-5', name: 'Enchanted Stone', image: '/village-items/decor/stones_5.png', category: 'decor', price: 40, description: 'A stone touched by magic' },
-  { id: 'stone-6', name: 'Legendary Stone', image: '/village-items/decor/stones_6.png', category: 'decor', price: 45, description: 'A stone of legendary power' },
-  { id: 'stone-7', name: 'Divine Stone', image: '/village-items/decor/stones_7.png', category: 'decor', price: 50, description: 'A stone blessed by divinity' },
+  { id: 'stone-1', name: 'Simple Stone', image: '/village-items/decor/stones_1.png', category: 'decor', subCategory: 'stones', price: 20, description: 'A basic decorative stone' },
+  { id: 'stone-2', name: 'Mystical Stone', image: '/village-items/decor/stones_2.png', category: 'decor', subCategory: 'stones', price: 25, description: 'A stone of mystical power' },
+  { id: 'stone-3', name: 'Ancient Stone', image: '/village-items/decor/stones_3.png', category: 'decor', subCategory: 'stones', price: 30, description: 'A stone from ancient times' },
+  { id: 'stone-4', name: 'Magical Stone', image: '/village-items/decor/stones_4.png', category: 'decor', subCategory: 'stones', price: 35, description: 'A stone of magical essence' },
+  { id: 'stone-5', name: 'Enchanted Stone', image: '/village-items/decor/stones_5.png', category: 'decor', subCategory: 'stones', price: 40, description: 'A stone touched by magic' },
+  { id: 'stone-6', name: 'Legendary Stone', image: '/village-items/decor/stones_6.png', category: 'decor', subCategory: 'stones', price: 45, description: 'A stone of legendary power' },
+  { id: 'stone-7', name: 'Divine Stone', image: '/village-items/decor/stones_7.png', category: 'decor', subCategory: 'stones', price: 50, description: 'A stone blessed by divinity' },
   
   // Greenery - Based on visual complexity and rarity
-  { id: 'greenery-1', name: 'Simple Plant', image: '/village-items/decor/greenery_1.png', category: 'decor', price: 30, description: 'A basic decorative plant' },
-  { id: 'greenery-2', name: 'Vibrant Bush', image: '/village-items/decor/greenery_2.png', category: 'decor', price: 35, description: 'A colorful decorative bush' },
-  { id: 'greenery-3', name: 'Exotic Plant', image: '/village-items/decor/greenery_3.png', category: 'decor', price: 40, description: 'An exotic decorative plant' },
-  { id: 'greenery-4', name: 'Mystical Plant', image: '/village-items/decor/greenery_4.png', category: 'decor', price: 45, description: 'A plant of mystical power' },
-  { id: 'greenery-5', name: 'Enchanted Plant', image: '/village-items/decor/greenery_5.png', category: 'decor', price: 50, description: 'A plant touched by magic' },
-  { id: 'greenery-6', name: 'Rare Plant', image: '/village-items/decor/greenery_6.png', category: 'decor', price: 55, description: 'A rare decorative plant' },
-  { id: 'greenery-7', name: 'Exotic Bush', image: '/village-items/decor/greenery_7.png', category: 'decor', price: 60, description: 'An exotic decorative bush' },
-  { id: 'greenery-8', name: 'Magical Shrub', image: '/village-items/decor/greenery_8.png', category: 'decor', price: 65, description: 'A shrub of magical essence' },
-  { id: 'greenery-9', name: 'Enchanted Bush', image: '/village-items/decor/greenery_9.png', category: 'decor', price: 70, description: 'A bush touched by magic' },
-  { id: 'greenery-10', name: 'Mystical Plant', image: '/village-items/decor/greenery_10.png', category: 'decor', price: 75, description: 'A plant of mystical power' },
-  { id: 'greenery-11', name: 'Sacred Bush', image: '/village-items/decor/greenery_11.png', category: 'decor', price: 80, description: 'A bush of sacred power' },
-  { id: 'greenery-12', name: 'Divine Plant', image: '/village-items/decor/greenery_12.png', category: 'decor', price: 85, description: 'A plant blessed by divinity' },
-  { id: 'greenery-13', name: 'Celestial Shrub', image: '/village-items/decor/greenery_13.png', category: 'decor', price: 90, description: 'A shrub from the heavens' },
-  { id: 'greenery-14', name: 'Ethereal Plant', image: '/village-items/decor/greenery_14.png', category: 'decor', price: 95, description: 'A plant of ethereal beauty' },
+  { id: 'greenery-1', name: 'Simple Plant', image: '/village-items/decor/greenery_1.png', category: 'decor', subCategory: 'greenery', price: 30, description: 'A basic decorative plant' },
+  { id: 'greenery-2', name: 'Vibrant Bush', image: '/village-items/decor/greenery_2.png', category: 'decor', subCategory: 'greenery', price: 35, description: 'A colorful decorative bush' },
+  { id: 'greenery-3', name: 'Exotic Plant', image: '/village-items/decor/greenery_3.png', category: 'decor', subCategory: 'greenery', price: 40, description: 'An exotic decorative plant' },
+  { id: 'greenery-4', name: 'Mystical Plant', image: '/village-items/decor/greenery_4.png', category: 'decor', subCategory: 'greenery', price: 45, description: 'A plant of mystical power' },
+  { id: 'greenery-5', name: 'Enchanted Plant', image: '/village-items/decor/greenery_5.png', category: 'decor', subCategory: 'greenery', price: 50, description: 'A plant touched by magic' },
+  { id: 'greenery-6', name: 'Rare Plant', image: '/village-items/decor/greenery_6.png', category: 'decor', subCategory: 'greenery', price: 55, description: 'A rare decorative plant' },
+  { id: 'greenery-7', name: 'Exotic Bush', image: '/village-items/decor/greenery_7.png', category: 'decor', subCategory: 'greenery', price: 60, description: 'An exotic decorative bush' },
+  { id: 'greenery-8', name: 'Magical Shrub', image: '/village-items/decor/greenery_8.png', category: 'decor', subCategory: 'greenery', price: 65, description: 'A shrub of magical essence' },
+  { id: 'greenery-9', name: 'Enchanted Bush', image: '/village-items/decor/greenery_9.png', category: 'decor', subCategory: 'greenery', price: 70, description: 'A bush touched by magic' },
+  { id: 'greenery-10', name: 'Mystical Plant', image: '/village-items/decor/greenery_10.png', category: 'decor', subCategory: 'greenery', price: 75, description: 'A plant of mystical power' },
+  { id: 'greenery-11', name: 'Sacred Bush', image: '/village-items/decor/greenery_11.png', category: 'decor', subCategory: 'greenery', price: 80, description: 'A bush of sacred power' },
+  { id: 'greenery-12', name: 'Divine Plant', image: '/village-items/decor/greenery_12.png', category: 'decor', subCategory: 'greenery', price: 85, description: 'A plant blessed by divinity' },
+  { id: 'greenery-13', name: 'Celestial Shrub', image: '/village-items/decor/greenery_13.png', category: 'decor', subCategory: 'greenery', price: 90, description: 'A shrub from the heavens' },
+  { id: 'greenery-14', name: 'Ethereal Plant', image: '/village-items/decor/greenery_14.png', category: 'decor', subCategory: 'greenery', price: 95, description: 'A plant of ethereal beauty' },
   
   // Lake - Special feature
-  { id: 'lake-1', name: 'Serene Lake', image: '/village-items/decor/lake.png', category: 'decor', price: 200, description: 'A peaceful lake for your village' }
+  { id: 'lake-1', name: 'Serene Lake', image: '/village-items/decor/lake.png', category: 'decor', subCategory: 'general', price: 200, description: 'A peaceful lake for your village' }
 ]
 
 export default function ShopPage() {
   const [items, setItems] = useState<ShopItem[]>(initialItems)
-  const [selectedCategory, setSelectedCategory] = useState<'houses' | 'tents' | 'decor' | 'bundles' | 'archer-towers'>('houses')
+  const [selectedCategory, setSelectedCategory] = useState<'houses' | 'tents' | 'decor' | 'archer-towers' | 'bundles'>('houses')
+  const [selectedSubCategory, setSelectedSubCategory] = useState<'greenery' | 'stones' | 'trees' | 'general' | 'all'>('all')
   const [points, setPoints] = useState(0)
   const [loading, setLoading] = useState(true)
   const [ownedItems, setOwnedItems] = useState<Set<string>>(new Set())
@@ -595,10 +597,15 @@ export default function ShopPage() {
     .filter(item => {
       if (selectedCategory === 'bundles') return false
       if (showOwnedOnly && !ownedItems.has(item.id)) return false
-      return item.category === selectedCategory &&
-             item.price >= priceRange[0] &&
-             item.price <= priceRange[1]
+      if (item.category === selectedCategory) {
+        if (selectedCategory === 'decor' && selectedSubCategory !== 'all') {
+          return item.subCategory === selectedSubCategory
+        }
+        return true
+      }
+      return false
     })
+    .filter(item => item.price >= priceRange[0] && item.price <= priceRange[1])
     .sort((a, b) => {
       if (sortBy === 'price-asc') return a.price - b.price
       if (sortBy === 'price-desc') return b.price - a.price
@@ -637,22 +644,46 @@ export default function ShopPage() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto">
-        {/* Category Tabs */}
+        {/* Category Tabs - Reordered with bundles at the end */}
         <div className="flex flex-wrap gap-2 mb-6">
-          {(['houses', 'tents', 'decor', 'bundles', 'archer-towers'] as const).map((category) => (
+          {(['houses', 'tents', 'decor', 'archer-towers', 'bundles'] as const).map((category) => (
             <button
               key={category}
-              onClick={() => setSelectedCategory(category)}
+              onClick={() => {
+                setSelectedCategory(category)
+                if (category === 'decor') {
+                  setSelectedSubCategory('all')
+                }
+              }}
               className={`py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
                 selectedCategory === category
                   ? 'bg-pink-100 text-pink-700'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              {category.charAt(0).toUpperCase() + category.slice(1)}
+              {category === 'archer-towers' ? 'Towers' : category.charAt(0).toUpperCase() + category.slice(1)}
             </button>
           ))}
         </div>
+
+        {/* Subcategory Tabs - Show only when Decor is selected */}
+        {selectedCategory === 'decor' && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {(['all', 'general', 'trees', 'stones', 'greenery'] as const).map((subCategory) => (
+              <button
+                key={subCategory}
+                onClick={() => setSelectedSubCategory(subCategory)}
+                className={`py-1 px-3 rounded-lg text-xs font-medium transition-colors ${
+                  selectedSubCategory === subCategory
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {subCategory === 'all' ? 'All Decor' : subCategory.charAt(0).toUpperCase() + subCategory.slice(1)}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-6">
