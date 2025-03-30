@@ -15,6 +15,7 @@ export interface User {
   email: string
   username: string
   points: number
+  admin: boolean
 }
 
 export async function signUp(email: string, password: string, username: string) {
@@ -57,7 +58,13 @@ export async function signIn(email: string, password: string) {
     }
 
     const data = await response.json() as ApiResponse<User>
-    return { user: data.user, error: null }
+    return { 
+      user: {
+        ...data.user, 
+        admin: data.user.admin || false  // Ensure admin status is included
+      }, 
+      error: null 
+    };
   } catch (error) {
     return { user: null, error: error instanceof Error ? error.message : 'Failed to sign in' }
   }
@@ -163,6 +170,8 @@ export async function getCurrentUser() {
     }
 
     const data = await response.json() as ApiResponse<User>
+
+    console.log("Fetched user:", data.user);
     return { user: data.user, error: null }
   } catch (error) {
     return { user: null, error: error instanceof Error ? error.message : 'Failed to get user' }

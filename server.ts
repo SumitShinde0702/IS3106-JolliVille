@@ -137,7 +137,7 @@ const loginHandler: AsyncRequestHandler = async (req, res) => {
     req.session.userId = user.id
     req.session.save()
 
-    res.json({ user: { id: user.id, email: user.email, username: user.username, points: user.points } })
+    res.json({ user: { id: user.id, email: user.email, username: user.username, points: user.points, admin: user.admin } })
   } catch (error) {
     console.error('Login error:', error)
     res.status(500).json({ error: 'Login failed' })
@@ -158,7 +158,7 @@ const meHandler: AsyncRequestHandler = async (req, res) => {
   try {
     const { data: user, error } = await supabase
       .from('profiles')
-      .select('id, email, username, points')
+      .select('id, email, username, points, admin')
       .eq('id', req.session.userId)
       .single()
 
