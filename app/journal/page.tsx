@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { MicrophoneIcon } from '@heroicons/react/24/solid'
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -24,7 +25,47 @@ const itemVariants = {
 export default function JournalPage() {
   const [entry, setEntry] = useState('')
   const [mood, setMood] = useState('happy')
+  const [isRecording, setIsRecording] = useState(false)
 
+  // Set up the SpeechRecognition API if it's available in the browser
+  useEffect(() => {
+    if (!('webkitSpeechRecognition' in window)) {
+      alert('Your browser does not support speech recognition.');
+      return;
+    }
+
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    
+    recognition.onresult = (event: { resultIndex: any; results: string | any[] }) => {
+      let transcript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setEntry(transcript); // Update the text area with the transcribed text
+    };
+
+    recognition.onerror = (event: { error: any }) => {
+      console.error("Speech recognition error", event.error);
+    };
+
+    // Store the recognition instance globally so we can access it in the handler
+    window.recognition = recognition;
+  }, []);
+
+  // Start recording when the user clicks the button
+  const handleRecordButtonClick = () => {
+    const recognition = window.recognition;
+    if (isRecording) {
+      recognition.stop();
+      setIsRecording(false);
+    } else {
+      recognition.start();
+      setIsRecording(true);
+    }
+  };
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     // TODO: Implement journal entry submission
@@ -84,12 +125,23 @@ export default function JournalPage() {
                 ))}
               </div>
 
-              <textarea
-                value={entry}
-                onChange={(e) => setEntry(e.target.value)}
-                placeholder="Write your thoughts here..."
-                className="w-full h-48 p-4 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-              />
+              {/* Textarea with Record Button */}
+              <div className="relative">
+                <textarea
+                  value={entry}
+                  onChange={(e) => setEntry(e.target.value)}
+                  placeholder="Write your thoughts here..."
+                  className="w-full h-48 p-4 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                />
+
+                {/* Record Button */}
+                <button
+                  onClick={handleRecordButtonClick}
+                  className="absolute top-2 right-2 p-2 bg-purple-500 text-white rounded-full focus:outline-none hover:bg-purple-600"
+                >
+                  <MicrophoneIcon className="h-6 w-6" />
+                </button>
+              </div>
 
               <button 
                 type="submit"

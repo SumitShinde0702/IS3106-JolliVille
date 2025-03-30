@@ -44,6 +44,8 @@
   ],
   "include": [
     "./server.ts",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "speech-recognition.d.ts",    // Explicitly include the custom declaration file
+    "app/journal/*.tsx"                    // Include all files in the src directory
   ]
 }
