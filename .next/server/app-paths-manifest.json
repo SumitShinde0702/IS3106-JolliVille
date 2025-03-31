@@ -1,8 +1,4 @@
 {
-  "/page": "app/page.js",
-  "/login/page": "app/login/page.js",
-  "/village/page": "app/village/page.js",
-  "/forgot-password/page": "app/forgot-password/page.js",
-  "/reset-password/page": "app/reset-password/page.js",
-  "/profile/page": "app/profile/page.js"
+  "/journal/page": "app/journal/page.js",
+  "/login/page": "app/login/page.js"
 }

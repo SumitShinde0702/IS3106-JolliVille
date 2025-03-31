@@ -510,7 +510,6 @@ export default function JournalPage() {
                   </button>
                 ))}
               </div>
-
               <div className="relative">
                 <textarea
                   value={reflection}
