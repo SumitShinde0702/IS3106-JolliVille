@@ -1,10 +1,11 @@
 "use client";
 
+import { ChevronDownIcon, MicrophoneIcon } from "@heroicons/react/24/solid";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 interface JournalEntry {
   id: string;
@@ -66,6 +67,14 @@ const MOCK_PROFILE = {
   monthly_streak: 0,
 };
 
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+    recognition: any;
+  }
+}
+
 export default function JournalPage() {
   const [mood, setMood] = useState("");
   const [reflection, setReflection] = useState("");
@@ -77,12 +86,55 @@ export default function JournalPage() {
   const [bonusPoints, setBonusPoints] = useState<number>(0);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [transcription, setTranscription] = useState("");
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const [isPointsGuideOpen, setIsPointsGuideOpen] = useState(false);
   const supabase = createClientComponentClient();
   const router = useRouter();
+
+  // Set up the SpeechRecognition API
+  useEffect(() => {
+    if (!("webkitSpeechRecognition" in window)) {
+      setError("Your browser does not support speech recognition.");
+      return;
+    }
+
+    const recognition = new (window.SpeechRecognition ||
+      window.webkitSpeechRecognition)();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onresult = (event: { resultIndex: number; results: any }) => {
+      let transcript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setReflection(transcript);
+    };
+
+    recognition.onerror = (event: { error: any }) => {
+      console.error("Speech recognition error", event.error);
+      setError("Speech recognition error occurred. Please try again.");
+      setIsRecording(false);
+    };
+
+    window.recognition = recognition;
+  }, []);
+
+  // Handle recording button click
+  const handleRecordButtonClick = () => {
+    if (!window.recognition) {
+      setError("Speech recognition is not supported in your browser.");
+      return;
+    }
+
+    if (isRecording) {
+      window.recognition.stop();
+      setIsRecording(false);
+    } else {
+      window.recognition.start();
+      setIsRecording(true);
+      setError(null);
+    }
+  };
 
   // Modify the loadUserProfile function
   useEffect(() => {
@@ -167,85 +219,6 @@ export default function JournalPage() {
     }
 
     return uploadedUrls;
-  };
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(chunksRef.current, { type: "audio/webm" });
-        setAudioBlob(audioBlob);
-        // Stop all tracks
-        stream.getTracks().forEach((track) => track.stop());
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (err) {
-      console.error("Error starting recording:", err);
-      setError(
-        "Failed to start recording. Please check your microphone permissions."
-      );
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const uploadAudio = async (audioBlob: Blob): Promise<string> => {
-    const formData = new FormData();
-    formData.append("audio", audioBlob, "recording.webm");
-
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/upload-audio`,
-      {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to upload audio");
-    }
-
-    const data = await response.json();
-    return data.url;
-  };
-
-  const transcribeAudio = async (audioUrl: string): Promise<string> => {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/transcribe`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({ audioUrl }),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to transcribe audio");
-    }
-
-    const data = await response.json();
-    return data.transcription;
   };
 
   const calculateStreakBonus = async (
@@ -339,24 +312,26 @@ export default function JournalPage() {
     try {
       const user = MOCK_USER;
 
+      // Stop recording if it's still active
+      if (isRecording) {
+        window.recognition.stop();
+        setIsRecording(false);
+      }
+
       // Validation logic
-      if (!mood || (!reflection && !audioBlob)) {
+      if (!mood || !reflection) {
+        throw new Error("Please fill in all required fields");
+      }
+
+      const wordCount = reflection.trim().split(/\s+/).length;
+      if (wordCount < MIN_WORDS_FOR_POINTS) {
         throw new Error(
-          "Please fill in all required fields and provide either text or audio reflection"
+          `Your reflection must be at least ${MIN_WORDS_FOR_POINTS} words to receive points`
         );
       }
 
-      if (reflection) {
-        const wordCount = reflection.trim().split(/\s+/).length;
-        if (wordCount < MIN_WORDS_FOR_POINTS) {
-          throw new Error(
-            `Your reflection must be at least ${MIN_WORDS_FOR_POINTS} words to receive points`
-          );
-        }
-      }
-
       // Mock successful submission
-      const mockBonusPoints = 50; // Example bonus points
+      const mockBonusPoints = 50;
       const totalPoints = POINTS_PER_JOURNAL + mockBonusPoints;
 
       // Update mock profile
@@ -369,7 +344,6 @@ export default function JournalPage() {
         last_journal_date: new Date().toISOString(),
       };
 
-      // Update local state with mock data
       setUserProfile(updatedProfile);
       setBonusPoints(mockBonusPoints);
       setSuccess(true);
@@ -451,8 +425,6 @@ export default function JournalPage() {
       setReflection("");
       setImages([]);
       setImageUrls([]);
-      setAudioBlob(null);
-      setTranscription("");
     } catch (err) {
       console.error("Error submitting journal:", err);
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -539,66 +511,24 @@ export default function JournalPage() {
                 ))}
               </div>
 
-              <textarea
-                value={reflection}
-                onChange={(e) => setReflection(e.target.value)}
-                placeholder="Write your thoughts here..."
-                className="w-full h-48 p-4 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-              />
-
-              <div className="flex items-center gap-4 mt-4">
+              <div className="relative">
+                <textarea
+                  value={reflection}
+                  onChange={(e) => setReflection(e.target.value)}
+                  placeholder="Write your thoughts here..."
+                  className="w-full h-48 p-4 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                />
                 <button
                   type="button"
-                  onClick={isRecording ? stopRecording : startRecording}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+                  onClick={handleRecordButtonClick}
+                  className={`absolute top-2 right-2 p-2 rounded-full focus:outline-none transition-colors ${
                     isRecording
-                      ? "bg-red-500 text-white"
-                      : "bg-purple-500 text-white"
-                  }`}
+                      ? "bg-red-500 hover:bg-red-600"
+                      : "bg-purple-500 hover:bg-purple-600"
+                  } text-white`}
                 >
-                  {isRecording ? (
-                    <>
-                      <span>Stop Recording</span>
-                      <span className="animate-pulse">🔴</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Start Recording</span>
-                      <span>🎤</span>
-                    </>
-                  )}
+                  <MicrophoneIcon className="h-6 w-6" />
                 </button>
-                {audioBlob && !isRecording && (
-                  <div className="flex items-center gap-2 flex-1">
-                    <audio
-                      controls
-                      src={URL.createObjectURL(audioBlob)}
-                      className="flex-1"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAudioBlob(null);
-                        setTranscription("");
-                      }}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                      title="Delete recording"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                )}
               </div>
 
               <div className="mt-4">
@@ -778,45 +708,67 @@ export default function JournalPage() {
 
               {/* Points Guide Card */}
               <div className="card">
-                <h2 className="text-2xl font-semibold mb-6">Points Guide</h2>
-                <div className="space-y-4">
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <h3 className="font-medium mb-2">Daily Journal</h3>
-                    <p className="text-lg font-bold text-purple-600">
-                      +10 Points
-                    </p>
+                <button
+                  onClick={() => setIsPointsGuideOpen(!isPointsGuideOpen)}
+                  className="w-full flex justify-between items-center"
+                >
+                  <h2 className="text-2xl font-semibold">Points Guide</h2>
+                  <ChevronDownIcon
+                    className={`h-6 w-6 text-gray-500 transition-transform duration-300 ${
+                      isPointsGuideOpen ? "transform rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                <motion.div
+                  initial={false}
+                  animate={{
+                    height: isPointsGuideOpen ? "auto" : 0,
+                    opacity: isPointsGuideOpen ? 1 : 0,
+                    marginTop: isPointsGuideOpen ? "1.5rem" : 0,
+                  }}
+                  transition={{ duration: 0.3 }}
+                  className="overflow-hidden"
+                >
+                  <div className="space-y-4">
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <h3 className="font-medium mb-2">Daily Journal</h3>
+                      <p className="text-lg font-bold text-purple-600">
+                        +10 Points
+                      </p>
+                    </div>
+                    <div className="bg-pink-50 p-4 rounded-lg">
+                      <h3 className="font-medium mb-2">Weekly Bonus</h3>
+                      <p className="text-lg font-bold text-pink-600">
+                        +50 Points
+                      </p>
+                      <p className="text-sm text-gray-600">Every 7 days</p>
+                    </div>
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h3 className="font-medium mb-2">Special Milestones</h3>
+                      <ul className="space-y-2">
+                        <li className="flex justify-between">
+                          <span>21 Days</span>
+                          <span className="font-bold text-blue-600">
+                            +150 Points
+                          </span>
+                        </li>
+                        <li className="flex justify-between">
+                          <span>48 Days</span>
+                          <span className="font-bold text-blue-600">
+                            +250 Points
+                          </span>
+                        </li>
+                        <li className="flex justify-between">
+                          <span>Monthly</span>
+                          <span className="font-bold text-blue-600">
+                            +400 Points
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
                   </div>
-                  <div className="bg-pink-50 p-4 rounded-lg">
-                    <h3 className="font-medium mb-2">Weekly Bonus</h3>
-                    <p className="text-lg font-bold text-pink-600">
-                      +50 Points
-                    </p>
-                    <p className="text-sm text-gray-600">Every 7 days</p>
-                  </div>
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <h3 className="font-medium mb-2">Special Milestones</h3>
-                    <ul className="space-y-2">
-                      <li className="flex justify-between">
-                        <span>21 Days</span>
-                        <span className="font-bold text-blue-600">
-                          +150 Points
-                        </span>
-                      </li>
-                      <li className="flex justify-between">
-                        <span>48 Days</span>
-                        <span className="font-bold text-blue-600">
-                          +250 Points
-                        </span>
-                      </li>
-                      <li className="flex justify-between">
-                        <span>Monthly</span>
-                        <span className="font-bold text-blue-600">
-                          +400 Points
-                        </span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+                </motion.div>
               </div>
             </div>
           </motion.div>
