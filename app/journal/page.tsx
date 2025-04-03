@@ -27,6 +27,51 @@ interface UserProfile {
   monthly_streak: number;
 }
 
+interface CongratsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  pointsEarned: number;
+  totalPoints: number;
+  bonusPoints: number;
+}
+
+const CongratsModal = ({ isOpen, onClose, pointsEarned, totalPoints, bonusPoints }: CongratsModalProps) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-white rounded-lg p-8 max-w-md w-full mx-4"
+      >
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-purple-600 mb-4">🎉 Congratulations! 🎉</h2>
+          <p className="text-lg mb-4">
+            You've earned <span className="font-bold text-purple-600">{pointsEarned}</span> points!
+          </p>
+          {bonusPoints > 0 && (
+            <p className="text-lg mb-4">
+              Including <span className="font-bold text-pink-600">{bonusPoints}</span> bonus points!
+            </p>
+          )}
+          <p className="text-lg">
+            Your total points: <span className="font-bold text-purple-600">{totalPoints}</span>
+          </p>
+        </div>
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={onClose}
+            className="btn-primary px-8"
+          >
+            Continue
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 const MIN_WORDS_FOR_POINTS = 50;
 const POINTS_PER_JOURNAL = 10;
 const WEEKLY_BONUS = 50;
@@ -61,10 +106,10 @@ const MOCK_USER = {
 const MOCK_PROFILE = {
   id: MOCK_USER.id,
   points: 100,
-  last_journal_date: null,
-  current_streak: 0,
-  weekly_streak: 0,
-  monthly_streak: 0,
+  last_journal_date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+  current_streak: 5,
+  weekly_streak: 5,
+  monthly_streak: 5,
 };
 
 declare global {
@@ -87,6 +132,9 @@ export default function JournalPage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isPointsGuideOpen, setIsPointsGuideOpen] = useState(false);
+  const [showCongratsModal, setShowCongratsModal] = useState(false);
+  const [pointsEarned, setPointsEarned] = useState(0);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const supabase = createClientComponentClient();
   const router = useRouter();
 
@@ -116,6 +164,10 @@ export default function JournalPage() {
       setIsRecording(false);
     };
 
+    recognition.onaudioend = () => {
+      setIsRecording(false);
+    };
+
     window.recognition = recognition;
   }, []);
 
@@ -140,7 +192,13 @@ export default function JournalPage() {
   useEffect(() => {
     const loadUserProfile = async () => {
       try {
-        // Comment out Supabase auth and data fetching for now
+        // Use mock data instead
+        const user = MOCK_USER;
+        console.log("Using mock user:", user);
+        setUserProfile(MOCK_PROFILE);
+        console.log("Using mock profile:", MOCK_PROFILE);
+
+        // Comment out Supabase auth and data fetching
         /*
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError) {
@@ -152,7 +210,6 @@ export default function JournalPage() {
           throw new Error('No user found');
         }
 
-        // Get profile directly from Supabase
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -163,13 +220,10 @@ export default function JournalPage() {
           console.error('Profile fetch error:', profileError);
           throw profileError;
         }
-        */
 
-        // Use mock data instead
-        const user = MOCK_USER;
-        console.log("Using mock user:", user);
-        setUserProfile(MOCK_PROFILE);
-        console.log("Using mock profile:", MOCK_PROFILE);
+        setUserProfile(profile);
+        console.log("Loaded user profile:", profile);
+        */
       } catch (err) {
         console.error("Error in loadUserProfile:", err);
         setError(err instanceof Error ? err.message : "Failed to load profile");
@@ -273,12 +327,12 @@ export default function JournalPage() {
       bonusPoints += WEEKLY_BONUS;
     }
 
-    // 21-day bonus
+    // 21-day bonus (exactly on day 21)
     if (newCurrentStreak === 21) {
       bonusPoints += TWENTY_ONE_DAY_BONUS;
     }
 
-    // 48-day bonus
+    // 48-day bonus (exactly on day 48)
     if (newCurrentStreak === 48) {
       bonusPoints += FORTY_EIGHT_DAY_BONUS;
     }
@@ -346,14 +400,22 @@ export default function JournalPage() {
 
       setUserProfile(updatedProfile);
       setBonusPoints(mockBonusPoints);
+      setPointsEarned(totalPoints);
+      setShowCongratsModal(true);
       setSuccess(true);
 
-      // Show success message briefly before redirecting
-      setTimeout(() => {
-        router.push("/journal/list");
-      }, 1500);
+      // Reset form
+      setMood("");
+      setReflection("");
+      setImages([]);
+      setImageUrls([]);
 
-      /* Comment out actual Supabase operations
+      // Comment out actual Supabase operations
+      /*
+      // Calculate streak bonus points
+      const bonusPoints = await calculateStreakBonus(user.id, userProfile?.last_journal_date || null);
+      const totalPoints = POINTS_PER_JOURNAL + bonusPoints;
+
       // Handle audio upload and transcription
       let audioUrl = '';
       let transcribedText = '';
@@ -407,30 +469,37 @@ export default function JournalPage() {
 
       if (journalError) throw journalError;
 
-      // Update user's points
+      // Update user's points and profile
       const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
         .update({ 
-          points: (userProfile?.points || 0) + totalPoints 
+          points: (userProfile?.points || 0) + totalPoints,
+          last_journal_date: new Date().toISOString()
         })
         .eq('id', user.id)
         .select()
         .single();
 
       if (updateError) throw updateError;
-      */
 
-      // Reset form
-      setMood("");
-      setReflection("");
-      setImages([]);
-      setImageUrls([]);
+      // Update local state
+      setUserProfile(updatedProfile);
+      setBonusPoints(bonusPoints);
+      setPointsEarned(totalPoints);
+      setShowCongratsModal(true);
+      setSuccess(true);
+      */
     } catch (err) {
       console.error("Error submitting journal:", err);
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCloseCongratsModal = () => {
+    setShowCongratsModal(false);
+    router.push("/journal/list");
   };
 
   const moods = [
@@ -443,6 +512,15 @@ export default function JournalPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 py-12">
+      {/* Add the CongratsModal component */}
+      <CongratsModal
+        isOpen={showCongratsModal}
+        onClose={handleCloseCongratsModal}
+        pointsEarned={pointsEarned}
+        totalPoints={userProfile?.points || 0}
+        bonusPoints={bonusPoints}
+      />
+      
       <motion.div
         className="container"
         variants={containerVariants}
@@ -568,19 +646,6 @@ export default function JournalPage() {
 
               {error && (
                 <div className="text-red-500 text-sm mt-4">{error}</div>
-              )}
-
-              {success && (
-                <div className="text-green-500 text-sm mt-4">
-                  Journal entry submitted successfully! You earned{" "}
-                  {POINTS_PER_JOURNAL} points.
-                  {bonusPoints > 0 && (
-                    <span className="block mt-1">
-                      Bonus points earned: {bonusPoints} points for maintaining
-                      your streak!
-                    </span>
-                  )}
-                </div>
               )}
 
               <button

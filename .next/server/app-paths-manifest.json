@@ -1,4 +1,6 @@
 {
-  "/journal/page": "app/journal/page.js",
-  "/login/page": "app/login/page.js"
+  "/login/page": "app/login/page.js",
+  "/journal/list/page": "app/journal/list/page.js",
+  "/village/page": "app/village/page.js",
+  "/journal/page": "app/journal/page.js"
 }
