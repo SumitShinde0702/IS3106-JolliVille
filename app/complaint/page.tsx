@@ -62,9 +62,7 @@ export default function ComplaintPage() {
               <ArrowLeftIcon className="h-5 w-5" />
               Back to Profile
             </button>
-            <h1 className="text-2xl font-bold text-white">
-              Submit a Complaint
-            </h1>
+            <h1 className="text-2xl font-bold text-white">Submit a Feedback</h1>
             <p className="text-purple-100 mt-2">
               We value your feedback and will address your concerns promptly.
             </p>
@@ -89,7 +87,7 @@ export default function ComplaintPage() {
                     setFormData({ ...formData, subject: e.target.value })
                   }
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
-                  placeholder="Brief subject of your complaint"
+                  placeholder="Brief subject of your feedback"
                   required
                 />
               </div>
@@ -109,7 +107,7 @@ export default function ComplaintPage() {
                     setFormData({ ...formData, description: e.target.value })
                   }
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors h-40 resize-none"
-                  placeholder="Please provide detailed information about your complaint..."
+                  placeholder="Please provide detailed information about your feedback..."
                   required
                 />
               </div>
