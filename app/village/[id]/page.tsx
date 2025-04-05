@@ -5,7 +5,8 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import BackArrow from "../../components/BackArrow";
-import { VillageItem, initialItems } from "../../lib/villageItems";
+import { VillageItem } from "../../lib/villageItems";
+import { shopItems } from "../../lib/shopItems";
 
 interface User {
   id: string;
@@ -77,20 +78,25 @@ export default function FriendVillagePage({ params }: { params: { id: string } }
 
   useEffect(() => {
     const loadVillageData = async () => {
+      console.log("Loading village data for user:", params.id);
       try {
         // Load user profile
-        const { data: userData, error: userError } = await supabase
+        const { data: profiles, error: profileError } = await supabase
           .from("profiles")
           .select("id, username, points, current_streak, avatar_url")
           .eq("id", params.id)
-          .single();
+          .limit(1);
 
-        if (userError) throw userError;
-        if (!userData) throw new Error("User not found");
+        if (profileError) throw profileError;
+        if (!profiles || profiles.length === 0) {
+          setError("User not found");
+          return;
+        }
 
-        setUser(userData);
+        console.log("Loaded user profile:", profiles[0]);
+        setUser(profiles[0]);
 
-        // Get the user's latest village layout
+        // Load latest village layout
         const { data: layouts, error: layoutError } = await supabase
           .from("village_layouts")
           .select("id, grid_size")
@@ -99,50 +105,84 @@ export default function FriendVillagePage({ params }: { params: { id: string } }
           .limit(1);
 
         if (layoutError) throw layoutError;
-        if (!layouts || layouts.length === 0) throw new Error("No village layout found");
+        if (!layouts || layouts.length === 0) {
+          setError("Village layout not found");
+          return;
+        }
 
         const layout = layouts[0];
+        console.log("Loaded layout:", layout);
         setCurrentGridSize(layout.grid_size || GRID_SIZE);
 
-        // Update tile numbers for the saved grid size
-        setTileNumbers(
-          Array.from({ length: layout.grid_size }, (_, row) =>
-            Array.from({ length: layout.grid_size }, (_, col) =>
-              getTileNumber(row, col, layout.grid_size)
-            )
-          ).flat()
-        );
+        // Load placed items and owned items in parallel
+        const [placedItemsResult, ownedItemsResult] = await Promise.all([
+          supabase
+            .from("village_items")
+            .select("item_id, grid_position")
+            .eq("layout_id", layout.id),
+          supabase
+            .from("owned_items")
+            .select("item_id")
+            .eq("user_id", params.id)
+        ]);
 
-        // Load placed items
-        const { data: placedItems, error: itemsError } = await supabase
-          .from("village_items")
-          .select("item_id, grid_position")
-          .eq("layout_id", layout.id);
+        const { data: placedItems, error: itemsError } = placedItemsResult;
+        const { data: ownedItems, error: ownedError } = ownedItemsResult;
 
         if (itemsError) throw itemsError;
+        if (ownedError) throw ownedError;
 
-        // Create grid items array
-        const newGridItems = Array(layout.grid_size * layout.grid_size).fill(null);
+        console.log("Loaded placed items:", placedItems);
+        console.log("Loaded owned items:", ownedItems);
 
-        // Place items in the grid
-        placedItems?.forEach((item) => {
-          const itemData = initialItems.find((i) => i.id === item.item_id);
-          if (itemData && item.grid_position < newGridItems.length) {
-            newGridItems[item.grid_position] = itemData;
-          }
-        });
+        // Create sets for efficient lookup
+        const ownedItemIds = new Set(ownedItems?.map(item => item.item_id) || []);
+        const starterItems = shopItems.filter(item => item.isStarter).map(item => item.id);
+        starterItems.forEach(id => ownedItemIds.add(id));
 
+        console.log("All owned items (including starters):", Array.from(ownedItemIds));
+        console.log("Placed items:", placedItems);
+
+        // Place items in grid
+        const savedGridSize = layout.grid_size || GRID_SIZE;
+        const newGridItems = Array(savedGridSize * savedGridSize).fill(null);
+        if (placedItems && placedItems.length > 0) {
+          placedItems.forEach((item) => {
+            const itemData = shopItems.find((i) => i.id === item.item_id);
+            console.log("Processing item:", item.item_id);
+            console.log("Found in shopItems:", !!itemData);
+            console.log("Position in bounds:", item.grid_position < newGridItems.length);
+            console.log("Is owned:", ownedItemIds.has(item.item_id));
+            
+            if (itemData && item.grid_position < newGridItems.length && ownedItemIds.has(item.item_id)) {
+              newGridItems[item.grid_position] = itemData;
+            }
+          });
+        }
+
+        console.log("Final grid items:", newGridItems.filter(Boolean));
         setGridItems(newGridItems);
+        setLoading(false);
       } catch (error) {
-        console.error("Error loading village:", error);
-        setError(error instanceof Error ? error.message : "Failed to load village");
-      } finally {
+        console.error("Error loading village data:", error);
+        setError("Error loading village data");
         setLoading(false);
       }
     };
 
     loadVillageData();
   }, [params.id]);
+
+  useEffect(() => {
+    // Update tile numbers when grid size changes
+    setTileNumbers(
+      Array.from({ length: currentGridSize * currentGridSize }, (_, index) => {
+        const row = Math.floor(index / currentGridSize);
+        const col = index % currentGridSize;
+        return getTileNumber(row, col, currentGridSize);
+      })
+    );
+  }, [currentGridSize]);
 
   if (loading) return <div className="p-8">Loading...</div>;
   if (error) return <div className="p-8 text-red-500">{error}</div>;
@@ -202,7 +242,7 @@ export default function FriendVillagePage({ params }: { params: { id: string } }
                   <div className="absolute inset-0">
                     <Image
                       src={getTilePath(tileNumbers[index])}
-                      alt="Tile"
+                      alt={`Tile ${tileNumbers[index]}`}
                       fill
                       sizes="(max-width: 768px) 50px, 100px"
                       className="object-cover"
