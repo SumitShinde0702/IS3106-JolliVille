@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { submitComplaint } from "../utils/complaintApi";
+import withUserOnly from "../utils/preventAdmin";
 
-export default function ComplaintPage() {
+function ComplaintPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -139,3 +140,5 @@ export default function ComplaintPage() {
     </div>
   );
 }
+
+export default withUserOnly(ComplaintPage);

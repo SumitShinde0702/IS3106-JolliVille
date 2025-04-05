@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import withUserOnly from "../utils/preventAdmin";
 
 interface JournalEntry {
   id: string;
@@ -75,7 +76,7 @@ declare global {
   }
 }
 
-export default function JournalPage() {
+function JournalPage() {
   const [mood, setMood] = useState("");
   const [reflection, setReflection] = useState("");
   const [images, setImages] = useState<File[]>([]);
@@ -776,3 +777,5 @@ export default function JournalPage() {
     </div>
   );
 }
+
+export default withUserOnly(JournalPage);

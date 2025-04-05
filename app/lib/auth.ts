@@ -61,7 +61,7 @@ export async function signIn(email: string, password: string) {
     return { 
       user: {
         ...data.user, 
-        admin: data.user.admin || false  // Ensure admin status is included
+        admin: data.user.admin
       }, 
       error: null 
     };

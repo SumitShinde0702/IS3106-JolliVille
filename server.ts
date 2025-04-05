@@ -12,6 +12,7 @@ dotenv.config({ path: ".env.local" });
 declare module "express-session" {
   interface SessionData {
     userId: string;
+    admin?: boolean;
   }
 }
 
@@ -146,6 +147,7 @@ const loginHandler: AsyncRequestHandler = async (req, res) => {
 
     // Set session
     req.session.userId = user.id;
+    req.session.admin = user.admin;
     req.session.save();
 
     res.json({
@@ -183,6 +185,8 @@ const meHandler: AsyncRequestHandler = async (req, res) => {
 
     if (error) throw error;
     res.json({ user });
+
+    console.log("User data from Supabase:", user);
   } catch (error) {
     console.error("Get user error:", error);
     res.status(500).json({ error: "Failed to get user data" });

@@ -17,8 +17,9 @@ import {
   deleteAccount,
   updateProfile,
 } from "../utils/profileApi";
+import withUserOnly from "../utils/preventAdmin";
 
-export default function ProfilePage() {
+function ProfilePage() {
   const { user, refreshUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -470,3 +471,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+export default withUserOnly(ProfilePage);
