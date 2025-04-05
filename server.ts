@@ -38,8 +38,8 @@ app.use(
   cors({
     origin: "http://localhost:3000",
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
@@ -400,6 +400,91 @@ app.delete("/api/auth/delete-account", requireAuth, deleteAccountHandler);
 app.post("/api/auth/sync-password", syncPasswordHandler);
 
 app.post("/api/complaints/submit", submitComplaintHandler);
+
+// /api/chats/find
+app.post('/api/chats/find', async (req, res) => {
+  const { participant1Id, participant2Id } = req.body;
+  try {
+    const { data: chat, error } = await supabase
+      .from('friend_chats')
+      .select('*')
+      .or(`participant1_id.eq.${participant1Id},participant2_id.eq.${participant2Id}`)
+      .single();
+
+    if (error) throw error;
+    res.json({ chat });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to find chat' });
+  }
+});
+
+// /api/chats/create
+app.post('/api/chats/create', async (req, res) => {
+  const { participant1Id, participant2Id } = req.body;
+  try {
+    const { data: chat, error } = await supabase
+      .from('friend_chats')
+      .insert({ participant1_id: participant1Id, participant2_id: participant2Id })
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json(chat);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create chat' });
+  }
+});
+
+// /api/chats/:chatId/messages
+app.get('/api/chats/:chatId/messages', async (req, res) => {
+  const { chatId } = req.params;
+  try {
+    const { data: messages, error } = await supabase
+      .from('friend_messages')
+      .select('*')
+      .eq('chat_id', chatId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    res.json({ messages });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to load messages' });
+  }
+});
+
+app.post('/api/chats/:chatId/messages', async (req, res) => {
+  const { chatId } = req.params;
+  const { content, senderId } = req.body;
+  try {
+    const { data: message, error } = await supabase
+      .from('friend_messages')
+      .insert({ chat_id: chatId, sender_id: senderId, content })
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json(message);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
+// /api/notifications
+app.post('/api/notifications', async (req, res) => {
+  const { userId, type, title, message, link } = req.body;
+  try {
+    const { data: notification, error } = await supabase
+      .from('notifications')
+      .insert({ user_id: userId, type, title, message, link })
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json(notification);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create notification' });
+  }
+});
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

@@ -5,8 +5,6 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import BackArrow from "../../components/BackArrow";
-import AnimatedElement from "../../components/AnimatedElement";
-import Weather from "../../components/Weather";
 import { VillageItem, initialItems } from "../../lib/villageItems";
 
 interface User {
