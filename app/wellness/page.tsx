@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { FiPause, FiPlay, FiVolume2, FiVolumeX } from "react-icons/fi";
 import BackArrow from "../components/BackArrow";
 import withUserOnly from "../utils/preventAdmin";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { getCurrentUser } from "../lib/auth";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -36,9 +38,14 @@ function WellnessPage() {
   const [elapsed, setElapsed] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [latestJournal, setLatestJournal] = useState<{ written_reflection: string; created_at: string } | null>(null);
+  const [inspirationalQuote, setInspirationalQuote] = useState<string>("");
+  const [inspirationalSubQuote, setInspirationalSubQuote] = useState<string>("");
+  const [isLoadingQuote, setIsLoadingQuote] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
+  const supabase = createClientComponentClient();
 
   // Function to format time in MM:SS
   const formatTime = (seconds: number) => {
@@ -127,6 +134,90 @@ function WellnessPage() {
       tempAudio.pause();
       tempAudio.src = "";
     };
+  }, []);
+
+  // Add useEffect for fetching latest journal and generating quote
+  useEffect(() => {
+    const fetchLatestJournal = async () => {
+      try {
+        const { user, error: userError } = await getCurrentUser();
+        if (userError || !user) return;
+
+        const { data, error } = await supabase
+          .from('journal_entries')
+          .select('written_reflection, created_at, mood')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          setLatestJournal(data);
+          setIsLoadingQuote(true);
+
+          try {
+            // Generate main inspirational quote
+            const response = await fetch("/api/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                messages: [
+                  {
+                    role: "system",
+                    content: "You are an empathetic AI that generates inspirational quotes. Based on the user's journal entry, create a short, personalized quote that reflects their emotions and experiences. The quote should be encouraging and insightful. Keep it under 100 characters."
+                  },
+                  {
+                    role: "user",
+                    content: `Generate a short, meaningful quote based on this journal entry: ${data.written_reflection}`
+                  }
+                ],
+                userId: user.id,
+              }),
+            });
+
+            if (!response.ok) throw new Error("Failed to generate quote");
+
+            const result = await response.json();
+            setInspirationalQuote(result.message);
+
+            // Generate context-specific sub-quote
+            const subQuoteResponse = await fetch("/api/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                messages: [
+                  {
+                    role: "system",
+                    content: "You are an empathetic AI that provides specific, contextual advice. Based on the user's journal entry, create a short, personalized message that addresses their specific situation (e.g., if they're stressed about exams, provide exam-specific encouragement). Keep it concise and focused on their particular context. Maximum 150 characters."
+                  },
+                  {
+                    role: "user",
+                    content: `The user wrote this journal entry with mood '${data.mood}': ${data.written_reflection}. Provide a specific, contextual message that addresses their situation.`
+                  }
+                ],
+                userId: user.id,
+              }),
+            });
+
+            if (!subQuoteResponse.ok) throw new Error("Failed to generate sub-quote");
+
+            const subQuoteResult = await subQuoteResponse.json();
+            setInspirationalSubQuote(subQuoteResult.message);
+          } catch (err) {
+            console.error("Error generating quotes:", err);
+            setInspirationalQuote("Your journey is unique, and every reflection brings new insights.");
+            setInspirationalSubQuote("Remember that each experience shapes your path forward.");
+          } finally {
+            setIsLoadingQuote(false);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching latest journal:", err);
+      }
+    };
+
+    fetchLatestJournal();
   }, []);
 
   // Meditation guide text based on duration
@@ -517,21 +608,61 @@ function WellnessPage() {
           </motion.div>
         )}
 
-        {/* Daily Challenge */}
+        {/* Reflection of the Day */}
         <motion.div className="mt-12 max-w-4xl mx-auto" variants={itemVariants}>
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl p-6 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold mb-2">Daily Challenge</h2>
-                <p className="text-purple-100">
-                  Complete 3 activities today to earn bonus points!
-                </p>
+            <h2 className="text-2xl font-bold mb-4">Quote of the Day</h2>
+            {isLoadingQuote ? (
+              <div className="flex justify-center items-center h-16">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
               </div>
-              <div className="text-center">
-                <div className="text-4xl font-bold mb-1">1/3</div>
-                <div className="text-sm text-purple-100">Activities Done</div>
+            ) : !latestJournal ? (
+              <div className="text-center py-6">
+                <p className="text-xl mb-4">Submit a journal entry to get your personalized quote of the day!</p>
+                <Link 
+                  href="/journal" 
+                  className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-full transition-all duration-200 backdrop-blur-sm"
+                >
+                  <span>Write your first reflection</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                </Link>
               </div>
-            </div>
+            ) : (
+              <>
+                <p className="text-xl italic mb-2">{inspirationalQuote}</p>
+                {latestJournal && (
+                  <>
+                    <p className="text-base text-purple-100 mb-3">
+                      <span className="italic">
+                        {isLoadingQuote ? "..." : inspirationalSubQuote}
+                      </span>
+                    </p>
+                    <p className="text-sm text-purple-100 mb-4">
+                      Based on your reflection from{" "}
+                      {new Date(latestJournal.created_at).toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric"
+                      })}
+                    </p>
+                    <div className="mt-6 text-center">
+                      <Link 
+                        href="/chatbot" 
+                        className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-full transition-all duration-200 backdrop-blur-sm"
+                      >
+                        <span>Need to talk to someone?</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                      </Link>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
           </div>
         </motion.div>
       </motion.div>

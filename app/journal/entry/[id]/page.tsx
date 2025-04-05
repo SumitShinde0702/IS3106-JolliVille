@@ -89,17 +89,34 @@ export default function JournalEntryPage({ params }: { params: { id: string } })
         animate="visible"
       >
         <div className="flex justify-between items-center mb-8">
+          <motion.div variants={itemVariants}>
+            <Link
+              href={`/journal/day/${new Date(entry.created_at).toISOString().split('T')[0]}`}
+              className="inline-flex items-center text-purple-600 hover:text-purple-700 transition-colors"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                />
+              </svg>
+              Back to List
+            </Link>
+          </motion.div>
           <motion.h1
             className="text-4xl font-bold text-gradient"
             variants={itemVariants}
           >
             Journal Entry
           </motion.h1>
-          <motion.div variants={itemVariants}>
-            <Link href="/journal/list" className="btn-primary">
-              Back to List
-            </Link>
-          </motion.div>
         </div>
 
         <motion.div

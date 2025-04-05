@@ -16,7 +16,7 @@ interface JournalEntry {
 
 interface CalendarDay {
   day: number | null;
-  entry: JournalEntry | null;
+  entries: JournalEntry[];
 }
 
 const containerVariants = {
@@ -33,6 +33,14 @@ const itemVariants = {
     scale: 1,
     opacity: 1,
   },
+};
+
+const moodEmojis: { [key: string]: string } = {
+  happy: "😊",
+  sad: "😢",
+  calm: "😌",
+  angry: "😤",
+  anxious: "😰",
 };
 
 export default function MonthlyLogPage() {
@@ -99,7 +107,7 @@ export default function MonthlyLogPage() {
 
     // Add empty cells for days before the first day of the month
     for (let i = 0; i < firstDay; i++) {
-      days.push({ day: null, entry: null });
+      days.push({ day: null, entries: [] });
     }
 
     // Add cells for each day of the month
@@ -109,10 +117,10 @@ export default function MonthlyLogPage() {
         currentDate.getMonth(),
         day
       );
-      const entry = entries.find(
+      const dayEntries = entries.filter(
         (e) => new Date(e.created_at).getDate() === day
       );
-      days.push({ day, entry: entry || null });
+      days.push({ day, entries: dayEntries });
     }
 
     return days;
@@ -208,9 +216,9 @@ export default function MonthlyLogPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-7 gap-4 mb-4">
+          <div className="grid grid-cols-7 gap-1 mb-4 text-center">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-              <div key={day} className="text-center font-medium text-gray-600">
+              <div key={day} className="font-medium text-gray-600">
                 {day}
               </div>
             ))}
@@ -221,9 +229,9 @@ export default function MonthlyLogPage() {
               <motion.div
                 key={index}
                 variants={itemVariants}
-                className={`aspect-square rounded-full flex items-center justify-center ${
+                className={`aspect-square rounded-lg flex flex-col items-center justify-center relative ${
                   day.day
-                    ? day.entry
+                    ? day.entries.length > 0
                       ? "bg-purple-100"
                       : "bg-gray-50"
                     : "bg-transparent"
@@ -231,18 +239,34 @@ export default function MonthlyLogPage() {
               >
                 {day.day && (
                   <Link
-                    href={day.entry ? `/journal/entry/${day.entry.id}` : "#"}
+                    href={day.entries.length > 0 
+                      ? `/journal/day/${encodeURIComponent(new Date(
+                          Date.UTC(
+                            currentDate.getFullYear(),
+                            currentDate.getMonth(),
+                            day.day
+                          )
+                        ).toISOString().split('T')[0])}`
+                      : "#"
+                    }
                     className={`w-full h-full flex flex-col items-center justify-center ${
-                      day.entry
-                        ? "cursor-pointer hover:bg-purple-200 rounded-full transition-colors"
+                      day.entries.length > 0
+                        ? "cursor-pointer hover:bg-purple-200 rounded-lg transition-colors"
                         : ""
                     }`}
                   >
                     <span className="text-sm text-gray-600">{day.day}</span>
-                    {day.entry && (
-                      <span className="text-xl">
-                        {getMoodEmoji(day.entry.mood)}
-                      </span>
+                    {day.entries.length > 0 && (
+                      <div className="flex flex-wrap justify-center gap-1 mt-1">
+                        {day.entries.slice(0, 3).map((entry, i) => (
+                          <span key={i} className="text-xl">
+                            {getMoodEmoji(entry.mood)}
+                          </span>
+                        ))}
+                        {day.entries.length > 3 && (
+                          <span className="text-xs text-purple-600">+{day.entries.length - 3}</span>
+                        )}
+                      </div>
                     )}
                   </Link>
                 )}
