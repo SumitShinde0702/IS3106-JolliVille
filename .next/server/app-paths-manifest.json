@@ -1,7 +1,0 @@
-{
-  "/journal/entry/[id]/page": "app/journal/entry/[id]/page.js",
-  "/wellness/page": "app/wellness/page.js",
-  "/journal/page": "app/journal/page.js",
-  "/chatbot/page": "app/chatbot/page.js",
-  "/journal/list/page": "app/journal/list/page.js"
-}

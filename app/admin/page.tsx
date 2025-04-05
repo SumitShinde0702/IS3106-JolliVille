@@ -4,21 +4,17 @@ import { useAuth } from "../context/AuthContext";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import React from "react";
+import AdminNav from "../components/AdminNav";
+import withAdminOnly from "../utils/preventUser";
 
-export default function AdminPage() {
-  const { user } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!user || !user.admin) {
-      router.push("/"); // Redirect non-admins to home
-    }
-  }, [user, router]);
-
+function AdminPage() {
   return (
     <div>
+      <AdminNav />
       <h1>Admin Dashboard</h1>
       <p>Welcome, Admin!</p>
     </div>
   );
 }
+
+export default withAdminOnly(AdminPage);

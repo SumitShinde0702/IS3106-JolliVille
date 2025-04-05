@@ -1,15 +1,22 @@
-'use client'
+"use client";
 
-import React from 'react'
-import Link from 'next/link'
-import { useAuth } from '../context/AuthContext'
+import React from "react";
+import Link from "next/link";
+import { useAuth } from "../context/AuthContext";
+import { usePathname } from "next/navigation";
 
 export default function Navigation() {
-  const { user, loading, signOut } = useAuth()
+  const { user, loading, signOut } = useAuth();
+  const pathname = usePathname();
 
   // Don't render anything while loading
   if (loading) {
-    return null
+    return null;
+  }
+
+  // Hide navigation on admin pages
+  if (pathname.startsWith("/admin")) {
+    return null;
   }
 
   return (
@@ -20,14 +27,44 @@ export default function Navigation() {
             JolliVille
           </Link>
           <div className="flex items-center space-x-4">
-            <Link href="/" className="px-3 py-2 hover:text-pink-600 transition-colors">Home</Link>
+            <Link
+              href="/"
+              className="px-3 py-2 hover:text-pink-600 transition-colors"
+            >
+              Home
+            </Link>
             {user ? (
               <>
-                <Link href="/village" className="px-3 py-2 hover:text-pink-600 transition-colors">Village</Link>
-                <Link href="/journal" className="px-3 py-2 hover:text-pink-600 transition-colors">Journal</Link>
-                <Link href="/wellness" className="px-3 py-2 hover:text-pink-600 transition-colors">Wellness</Link>
-                <Link href="/chatbot" className="px-3 py-2 hover:text-pink-600 transition-colors">Chat</Link>
-                <Link href="/profile" className="px-3 py-2 hover:text-pink-600 transition-colors">Profile</Link>
+                <Link
+                  href="/village"
+                  className="px-3 py-2 hover:text-pink-600 transition-colors"
+                >
+                  Village
+                </Link>
+                <Link
+                  href="/journal"
+                  className="px-3 py-2 hover:text-pink-600 transition-colors"
+                >
+                  Journal
+                </Link>
+                <Link
+                  href="/wellness"
+                  className="px-3 py-2 hover:text-pink-600 transition-colors"
+                >
+                  Wellness
+                </Link>
+                <Link
+                  href="/chatbot"
+                  className="px-3 py-2 hover:text-pink-600 transition-colors"
+                >
+                  Chat
+                </Link>
+                <Link
+                  href="/profile"
+                  className="px-3 py-2 hover:text-pink-600 transition-colors"
+                >
+                  Profile
+                </Link>
                 <button
                   onClick={signOut}
                   className="px-3 py-2 text-red-600 hover:text-red-700 transition-colors"
@@ -37,13 +74,23 @@ export default function Navigation() {
               </>
             ) : (
               <>
-                <Link href="/login" className="px-3 py-2 hover:text-pink-600 transition-colors">Login</Link>
-                <Link href="/register" className="px-3 py-2 hover:text-pink-600 transition-colors">Register</Link>
+                <Link
+                  href="/login"
+                  className="px-3 py-2 hover:text-pink-600 transition-colors"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/register"
+                  className="px-3 py-2 hover:text-pink-600 transition-colors"
+                >
+                  Register
+                </Link>
               </>
             )}
           </div>
         </div>
       </div>
     </nav>
-  )
-} 
+  );
+}

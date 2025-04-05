@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { motion } from "framer-motion";
 import Link from "next/link";

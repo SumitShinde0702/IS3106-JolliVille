@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { getCurrentUser, updateUserPoints } from '../lib/auth';
+import withUserOnly from "../utils/preventAdmin";
 
 interface JournalEntry {
   id: string;
@@ -104,7 +105,7 @@ declare global {
   }
 }
 
-export default function JournalPage() {
+function JournalPage() {
   const [mood, setMood] = useState("");
   const [reflection, setReflection] = useState("");
   const [images, setImages] = useState<File[]>([]);
@@ -804,3 +805,5 @@ export default function JournalPage() {
     </div>
   );
 }
+
+export default withUserOnly(JournalPage);

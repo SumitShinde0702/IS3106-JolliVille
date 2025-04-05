@@ -1,22 +1,22 @@
-import type { Metadata } from 'next'
-import React, { useState } from 'react'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import Navigation from './components/Navigation'
-import { AuthProvider } from './context/AuthContext'
-import './styles/animations.css'
+import type { Metadata } from "next";
+import React, { useState } from "react";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import Navigation from "./components/Navigation";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import "./styles/animations.css";
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'JolliVille',
-  description: 'Your personal wellness village',
-}
+  title: "JolliVille",
+  description: "Your personal wellness village",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
@@ -37,12 +37,13 @@ export default function RootLayout({
               return () => subscription.unsubscribe()
             }, [router]);
           */}
+
+          {/* Conditionally render the navbar based on user role */}
           <Navigation />
-          <main className="min-h-screen">
-            {children}
-          </main>
+
+          <main className="min-h-screen">{children}</main>
         </AuthProvider>
       </body>
     </html>
-  )
-} 
+  );
+}
