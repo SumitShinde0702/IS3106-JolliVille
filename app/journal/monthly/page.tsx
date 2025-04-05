@@ -1,12 +1,15 @@
 "use client";
 
+import React from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { getCurrentUser } from "../../lib/auth";
 
 interface JournalEntry {
   id: string;
+  user_id: string;
   mood: string;
   created_at: string;
 }
@@ -32,20 +35,6 @@ const itemVariants = {
   },
 };
 
-// Mock data for testing
-const MOCK_ENTRIES = [
-  { id: "1", mood: "sad", created_at: "2024-01-01T10:00:00Z" },
-  { id: "2", mood: "happy", created_at: "2024-01-02T10:00:00Z" },
-  { id: "3", mood: "calm", created_at: "2024-01-03T10:00:00Z" },
-  { id: "4", mood: "calm", created_at: "2024-01-04T10:00:00Z" },
-  { id: "5", mood: "happy", created_at: "2024-01-05T10:00:00Z" },
-  { id: "6", mood: "happy", created_at: "2024-01-06T10:00:00Z" },
-  { id: "7", mood: "happy", created_at: "2024-01-07T10:00:00Z" },
-  { id: "8", mood: "angry", created_at: "2024-01-08T10:00:00Z" },
-  { id: "11", mood: "happy", created_at: "2024-01-11T10:00:00Z" },
-  { id: "12", mood: "calm", created_at: "2024-01-12T10:00:00Z" },
-];
-
 export default function MonthlyLogPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,12 +45,7 @@ export default function MonthlyLogPage() {
   useEffect(() => {
     const loadEntries = async () => {
       try {
-        // For now, use mock data
-        setEntries(MOCK_ENTRIES);
-        setLoading(false);
-
-        /* Uncomment when ready to use Supabase
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        const { user, error: userError } = await getCurrentUser();
         if (userError) throw userError;
         if (!user) throw new Error('Not authenticated');
 
@@ -70,15 +54,14 @@ export default function MonthlyLogPage() {
 
         const { data, error } = await supabase
           .from('journal_entries')
-          .select('id, mood, created_at')
+          .select('id, mood, created_at, user_id')
           .eq('user_id', user.id)
           .gte('created_at', startOfMonth)
           .lte('created_at', endOfMonth)
           .order('created_at', { ascending: true });
 
         if (error) throw error;
-        setEntries(data);
-        */
+        setEntries(data || []);
       } catch (err) {
         console.error("Error loading entries:", err);
         setError(err instanceof Error ? err.message : "Failed to load entries");
@@ -160,6 +143,32 @@ export default function MonthlyLogPage() {
         initial="hidden"
         animate="visible"
       >
+        <motion.div 
+          variants={itemVariants}
+          className="mb-6"
+        >
+          <Link 
+            href="/journal" 
+            className="inline-flex items-center text-purple-600 hover:text-purple-700 transition-colors"
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className="h-6 w-6 mr-2" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M10 19l-7-7m0 0l7-7m-7 7h18" 
+              />
+            </svg>
+            Back to Journal
+          </Link>
+        </motion.div>
+
         <div className="flex justify-between items-center mb-8">
           <motion.h1
             className="text-4xl font-bold text-gradient"

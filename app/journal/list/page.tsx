@@ -4,32 +4,16 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { getCurrentUser } from "../../lib/auth";
 
 interface JournalEntry {
   id: string;
+  user_id: string;
   mood: string;
   written_reflection: string;
   created_at: string;
-  audio_url?: string;
   image_urls: string[];
 }
-
-const MOCK_ENTRIES = [
-  {
-    id: "1",
-    mood: "happy",
-    written_reflection: "Today was a great day...",
-    created_at: "2024-03-15T10:00:00Z",
-    image_urls: [],
-  },
-  {
-    id: "2",
-    mood: "calm",
-    written_reflection: "Feeling peaceful today...",
-    created_at: "2024-03-14T10:00:00Z",
-    image_urls: [],
-  },
-];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -56,12 +40,7 @@ export default function JournalListPage() {
   useEffect(() => {
     const loadEntries = async () => {
       try {
-        // For now, use mock data
-        setEntries(MOCK_ENTRIES);
-        setLoading(false);
-
-        /* Uncomment when ready to use Supabase
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        const { user, error: userError } = await getCurrentUser();
         if (userError) throw userError;
         if (!user) throw new Error('Not authenticated');
 
@@ -72,8 +51,7 @@ export default function JournalListPage() {
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        setEntries(data);
-        */
+        setEntries(data || []);
       } catch (err) {
         console.error("Error loading entries:", err);
         setError(err instanceof Error ? err.message : "Failed to load entries");
@@ -134,39 +112,48 @@ export default function JournalListPage() {
           </motion.div>
         </div>
 
-        <motion.div className="grid gap-6" variants={containerVariants}>
-          {entries.map((entry) => (
-            <motion.div
-              key={entry.id}
-              variants={itemVariants}
-              className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
-            >
-              <Link href={`/journal/entry/${entry.id}`}>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{getMoodEmoji(entry.mood)}</span>
-                    <span className="text-gray-600">
-                      {formatDate(entry.created_at)}
-                    </span>
+        {entries.length === 0 ? (
+          <motion.div 
+            className="text-center py-12"
+            variants={itemVariants}
+          >
+            <p className="text-gray-600 text-lg mb-4">No journal entries yet.</p>
+            <Link href="/journal" className="btn-primary">
+              Write your first entry
+            </Link>
+          </motion.div>
+        ) : (
+          <motion.div className="grid gap-6" variants={containerVariants}>
+            {entries.map((entry) => (
+              <motion.div
+                key={entry.id}
+                variants={itemVariants}
+                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
+              >
+                <Link href={`/journal/entry/${entry.id}`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{getMoodEmoji(entry.mood)}</span>
+                      <span className="text-gray-600">
+                        {formatDate(entry.created_at)}
+                      </span>
+                    </div>
                   </div>
-                  {entry.audio_url && (
-                    <span className="text-purple-600">🎤 Voice Entry</span>
+                  <p className="text-gray-700 line-clamp-3">
+                    {entry.written_reflection}
+                  </p>
+                  {entry.image_urls.length > 0 && (
+                    <div className="mt-4 flex gap-2">
+                      <span className="text-purple-600">
+                        📷 {entry.image_urls.length} image(s)
+                      </span>
+                    </div>
                   )}
-                </div>
-                <p className="text-gray-700 line-clamp-3">
-                  {entry.written_reflection}
-                </p>
-                {entry.image_urls.length > 0 && (
-                  <div className="mt-4 flex gap-2">
-                    <span className="text-purple-600">
-                      📷 {entry.image_urls.length} image(s)
-                    </span>
-                  </div>
-                )}
-              </Link>
-            </motion.div>
-          ))}
-        </motion.div>
+                </Link>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
       </motion.div>
     </div>
   );
