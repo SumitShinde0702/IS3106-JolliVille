@@ -462,25 +462,6 @@ export default function WellnessPage() {
             </div>
           </motion.div>
         )}
-
-        {/* Daily Challenge */}
-        <motion.div 
-          className="mt-12 max-w-4xl mx-auto"
-          variants={itemVariants}
-        >
-          <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl p-6 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold mb-2">Daily Challenge</h2>
-                <p className="text-purple-100">Complete 3 activities today to earn bonus points!</p>
-              </div>
-              <div className="text-center">
-                <div className="text-4xl font-bold mb-1">1/3</div>
-                <div className="text-sm text-purple-100">Activities Done</div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
       </motion.div>
 
       <style jsx global>{`

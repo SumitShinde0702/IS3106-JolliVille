@@ -12,6 +12,15 @@ interface Message {
   content: string
 }
 
+interface JournalEntry {
+  id: string
+  user_id: string
+  mood: string
+  written_reflection: string
+  created_at: string
+  image_urls: string[]
+}
+
 interface Conversation {
   id: string
   created_at: string
@@ -27,6 +36,7 @@ export default function ChatBot() {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [editingMessageIndex, setEditingMessageIndex] = useState<number | null>(null)
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const supabase = createClientComponentClient()
 
@@ -50,6 +60,29 @@ export default function ChatBot() {
       fetchMessages(currentConversationId)
     }
   }, [currentConversationId])
+
+  // Fetch journal entries
+  const fetchJournalEntries = async () => {
+    if (!user) return
+
+    const { data, error } = await supabase
+      .from('journal_entries')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching journal entries:', error)
+      return
+    }
+
+    setJournalEntries(data)
+  }
+
+  // Add useEffect to fetch journal entries
+  useEffect(() => {
+    fetchJournalEntries()
+  }, [user])
 
   const fetchConversations = async () => {
     if (!user) return
@@ -207,6 +240,97 @@ export default function ChatBot() {
         }
         
         // Update conversations list to show new message
+        fetchConversations()
+      } catch (error) {
+        console.error('Error:', error)
+      } finally {
+        setIsLoading(false)
+      }
+      
+      return
+    }
+
+    // Check if the message is asking about journals
+    const journalCommand = message.toLowerCase()
+    if (journalCommand.includes('journal') || journalCommand.includes('entry') || journalCommand.includes('diary')) {
+      const newMessage: Message = { role: 'user', content: message }
+      setMessages(prev => [...prev, newMessage])
+      setMessage('')
+
+      // Save user message
+      if (currentConversationId) {
+        await saveMessage(currentConversationId, newMessage)
+      }
+
+      setIsLoading(true)
+
+      try {
+        let response: string = ''
+
+        // Handle different journal-related commands
+        if (journalCommand.includes('latest') || journalCommand.includes('recent')) {
+          const latestEntry = journalEntries[0]
+          if (latestEntry) {
+            // First provide the entry details
+            response = `Your latest journal entry was on ${new Date(latestEntry.created_at).toLocaleDateString()}. You were feeling ${latestEntry.mood}. Here's what you wrote:\n\n${latestEntry.written_reflection}\n\n`
+            
+            // Add empathetic response based on mood
+            if (latestEntry.mood.toLowerCase() === 'angry') {
+              response += "I can sense that you were really frustrated and angry about this situation. It's completely valid to feel this way when dealing with unfair practices. Would you like to talk more about how you're feeling now? Has anything changed since you wrote this entry?"
+            } else if (latestEntry.mood.toLowerCase() === 'sad') {
+              response += "I can tell this was a difficult moment for you. Sometimes writing about our feelings helps process them. How are you feeling now? Would you like to explore what might help lift your spirits?"
+            } else if (latestEntry.mood.toLowerCase() === 'happy') {
+              response += "It's wonderful to see you in such good spirits! These positive moments are worth celebrating. Would you like to share more about what made this experience special?"
+            } else if (latestEntry.mood.toLowerCase() === 'anxious') {
+              response += "I can sense that you were dealing with some anxiety. Remember that it's okay to feel this way. Would you like to talk about what helps you manage anxiety? Or would you prefer to focus on some positive aspects?"
+            } else {
+              response += "Thank you for sharing this with me. How are you feeling now compared to when you wrote this? I'm here if you'd like to discuss it further."
+            }
+
+            // Add follow-up prompts based on content
+            if (latestEntry.written_reflection.toLowerCase().includes('solution') || 
+                latestEntry.written_reflection.toLowerCase().includes('discovered')) {
+              response += "\n\nIt's great that you found a potential solution! Would you like to discuss how you plan to implement this or explore other alternatives?"
+            }
+            
+            if (latestEntry.written_reflection.toLowerCase().includes('lost') || 
+                latestEntry.written_reflection.toLowerCase().includes('no refund')) {
+              response += "\n\nDealing with loss and unfairness can be really challenging. Would you like to explore some coping strategies or discuss ways to prevent similar situations in the future?"
+            }
+          } else {
+            response = "You haven't written any journal entries yet. Would you like to write one now?"
+          }
+        } else if (journalCommand.includes('all') || journalCommand.includes('list')) {
+          response = journalEntries.length > 0 
+            ? `You have ${journalEntries.length} journal entries. Here are your recent entries:\n\n${
+                journalEntries.slice(0, 3).map(entry => 
+                  `📅 ${new Date(entry.created_at).toLocaleDateString()} - Feeling ${entry.mood}\n${entry.written_reflection.substring(0, 100)}...`
+                ).join('\n\n')
+              }`
+            : "You haven't written any journal entries yet. Would you like to start journaling?"
+        } else if (journalCommand.includes('mood') || journalCommand.includes('feeling')) {
+          const moodCounts = journalEntries.reduce((acc, entry) => {
+            acc[entry.mood] = (acc[entry.mood] || 0) + 1
+            return acc
+          }, {} as Record<string, number>)
+          
+          const mostCommonMood = Object.entries(moodCounts).sort((a, b) => b[1] - a[1])[0]
+          response = mostCommonMood 
+            ? `Based on your journal entries, you most commonly feel ${mostCommonMood[0]} (${mostCommonMood[1]} times).`
+            : "I don't have enough journal entries to analyze your moods yet."
+        } else {
+          response = "I can help you with your journal entries! You can ask me to:\n- Show your latest entry\n- List all entries\n- Analyze your moods\n\nWhat would you like to know?"
+        }
+
+        const assistantMessage: Message = { role: 'assistant', content: response }
+        setMessages(prev => [...prev, assistantMessage])
+
+        // Save assistant message
+        if (currentConversationId) {
+          await saveMessage(currentConversationId, assistantMessage)
+        }
+        
+        // Update conversations list
         fetchConversations()
       } catch (error) {
         console.error('Error:', error)

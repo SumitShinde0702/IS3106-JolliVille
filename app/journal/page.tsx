@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import { getCurrentUser, updateUserPoints } from '../lib/auth';
 
 interface JournalEntry {
   id: string;
@@ -14,8 +15,6 @@ interface JournalEntry {
   written_reflection: string;
   created_at: string;
   image_urls: string[];
-  audio_url?: string;
-  transcription?: string;
 }
 
 interface UserProfile {
@@ -97,21 +96,6 @@ const itemVariants = {
   },
 };
 
-// Add mock user data
-const MOCK_USER = {
-  id: "123e4567-e89b-12d3-a456-426614174000",
-  email: "test@example.com",
-};
-
-const MOCK_PROFILE = {
-  id: MOCK_USER.id,
-  points: 100,
-  last_journal_date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-  current_streak: 5,
-  weekly_streak: 5,
-  monthly_streak: 5,
-};
-
 declare global {
   interface Window {
     SpeechRecognition: any;
@@ -134,7 +118,7 @@ export default function JournalPage() {
   const [isPointsGuideOpen, setIsPointsGuideOpen] = useState(false);
   const [showCongratsModal, setShowCongratsModal] = useState(false);
   const [pointsEarned, setPointsEarned] = useState(0);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [daysUntilMilestone, setDaysUntilMilestone] = useState(0);
   const supabase = createClientComponentClient();
   const router = useRouter();
 
@@ -188,28 +172,17 @@ export default function JournalPage() {
     }
   };
 
-  // Modify the loadUserProfile function
+  // Load user profile and calculate days until next milestone
   useEffect(() => {
     const loadUserProfile = async () => {
       try {
-        // Use mock data instead
-        const user = MOCK_USER;
-        console.log("Using mock user:", user);
-        setUserProfile(MOCK_PROFILE);
-        console.log("Using mock profile:", MOCK_PROFILE);
-
-        // Comment out Supabase auth and data fetching
-        /*
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError) {
-          console.error('Error getting current user:', userError);
-          throw userError;
-        }
-        if (!user) {
-          console.error('No user found');
-          throw new Error('No user found');
+        const { user, error } = await getCurrentUser();
+        if (error || !user) {
+          router.push('/login');
+          return;
         }
 
+        // Get extended profile data from profiles table
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -217,20 +190,57 @@ export default function JournalPage() {
           .single();
 
         if (profileError) {
-          console.error('Profile fetch error:', profileError);
-          throw profileError;
+          console.error('Error fetching profile:', profileError);
+          return;
         }
 
-        setUserProfile(profile);
-        console.log("Loaded user profile:", profile);
-        */
+        // If profile doesn't exist, create one
+        if (!profile) {
+          const newProfile = {
+            id: user.id,
+            points: 100,
+            current_streak: 0,
+            weekly_streak: 0,
+            monthly_streak: 0,
+            last_journal_date: null
+          };
+          
+          const { data: createdProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([newProfile])
+            .select()
+            .single();
+
+          if (createError) return;
+          
+          setUserProfile(createdProfile);
+        } else {
+          setUserProfile(profile);
+        }
+
+        // Calculate days until next milestone
+        const currentStreak = profile?.current_streak || 0;
+        let nextMilestone;
+        if (currentStreak < 21) {
+          nextMilestone = 21;
+        } else if (currentStreak < 48) {
+          nextMilestone = 48;
+        } else if (currentStreak < 100) {
+          nextMilestone = 100;
+        } else {
+          nextMilestone = currentStreak + (30 - (currentStreak % 30));
+        }
+
+        const daysRemaining = nextMilestone - currentStreak;
+        setDaysUntilMilestone(daysRemaining);
+
       } catch (err) {
-        console.error("Error in loadUserProfile:", err);
-        setError(err instanceof Error ? err.message : "Failed to load profile");
+        console.error('Error loading profile:', err);
       }
     };
+
     loadUserProfile();
-  }, []);
+  }, [router]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -248,233 +258,135 @@ export default function JournalPage() {
     setImageUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Upload images to Supabase Storage
   const uploadImages = async (files: File[]): Promise<string[]> => {
-    const uploadedUrls: string[] = [];
+    try {
+      const { user } = await getCurrentUser();
+      if (!user) throw new Error('Not authenticated');
 
-    for (const file of files) {
-      const formData = new FormData();
-      formData.append("image", file);
+      const uploadPromises = files.map(async (file) => {
+        try {
+          // Basic sanitized filename
+          const ext = file.name.split('.').pop();
+          const fileName = `${Date.now()}.${ext}`;
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/upload-image`,
-        {
-          method: "POST",
-          credentials: "include",
-          body: formData,
+          // Simple upload
+          const { data, error } = await supabase.storage
+            .from('journal_images')
+            .upload(fileName, file);
+
+          if (error) {
+            console.error('Upload error:', error);
+            return ''; // Return empty string for failed uploads
+          }
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('journal_images')
+            .getPublicUrl(fileName);
+
+          return publicUrl;
+        } catch (error) {
+          console.error('Individual file upload error:', error);
+          return ''; // Return empty string for failed uploads
         }
-      );
+      });
 
-      if (!response.ok) {
-        throw new Error("Failed to upload image");
-      }
-
-      const data = await response.json();
-      uploadedUrls.push(data.url);
+      // Filter out failed uploads (empty strings)
+      const urls = (await Promise.all(uploadPromises)).filter(url => url !== '');
+      return urls;
+    } catch (error) {
+      console.error('Upload process error:', error);
+      return []; // Return empty array if entire process fails
     }
-
-    return uploadedUrls;
   };
 
-  const calculateStreakBonus = async (
-    userId: string,
-    lastJournalDate: string | null
-  ): Promise<number> => {
-    const today = new Date();
-    const lastDate = lastJournalDate ? new Date(lastJournalDate) : null;
-
-    // If no last journal date, start new streak
-    if (!lastDate) {
-      await supabase
-        .from("profiles")
-        .update({
-          current_streak: 1,
-          weekly_streak: 1,
-          monthly_streak: 1,
-          last_journal_date: today.toISOString(),
-        })
-        .eq("id", userId);
-      return 0;
-    }
-
-    // Check if streak is broken (more than 1 day gap)
-    const daysSinceLastEntry = Math.floor(
-      (today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    if (daysSinceLastEntry > 1) {
-      // Reset streaks
-      await supabase
-        .from("profiles")
-        .update({
-          current_streak: 1,
-          weekly_streak: 1,
-          monthly_streak: 1,
-          last_journal_date: today.toISOString(),
-        })
-        .eq("id", userId);
-      return 0;
-    }
-
-    // Update streaks
-    const newCurrentStreak = (userProfile?.current_streak || 0) + 1;
-    const newWeeklyStreak = (userProfile?.weekly_streak || 0) + 1;
-    const newMonthlyStreak = (userProfile?.monthly_streak || 0) + 1;
-
-    // Calculate bonus points
-    let bonusPoints = 0;
-
-    // Weekly bonus (every 7 days)
-    if (newWeeklyStreak % 7 === 0) {
-      bonusPoints += WEEKLY_BONUS;
-    }
-
-    // 21-day bonus (exactly on day 21)
-    if (newCurrentStreak === 21) {
-      bonusPoints += TWENTY_ONE_DAY_BONUS;
-    }
-
-    // 48-day bonus (exactly on day 48)
-    if (newCurrentStreak === 48) {
-      bonusPoints += FORTY_EIGHT_DAY_BONUS;
-    }
-
-    // Monthly bonus (every 30 days)
-    if (newMonthlyStreak % 30 === 0) {
-      bonusPoints += MONTHLY_BONUS;
-    }
-
-    // Update streaks in database
-    await supabase
-      .from("profiles")
-      .update({
-        current_streak: newCurrentStreak,
-        weekly_streak: newWeeklyStreak,
-        monthly_streak: newMonthlyStreak,
-        last_journal_date: today.toISOString(),
-      })
-      .eq("id", userId);
-
-    return bonusPoints;
-  };
-
+  // Handle journal submission with enhanced debugging
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setSuccess(false);
-    setBonusPoints(0);
 
     try {
-      const user = MOCK_USER;
+      const { user, error: authError } = await getCurrentUser();
+      if (authError || !user) throw new Error('Not authenticated');
 
-      // Stop recording if it's still active
-      if (isRecording) {
-        window.recognition.stop();
-        setIsRecording(false);
+      // Validate required fields
+      if (!mood || !reflection.trim()) {
+        throw new Error('Please fill in all required fields');
       }
 
-      // Validation logic
-      if (!mood || !reflection) {
-        throw new Error("Please fill in all required fields");
-      }
-
-      const wordCount = reflection.trim().split(/\s+/).length;
-      if (wordCount < MIN_WORDS_FOR_POINTS) {
-        throw new Error(
-          `Your reflection must be at least ${MIN_WORDS_FOR_POINTS} words to receive points`
-        );
-      }
-
-      // Mock successful submission
-      const mockBonusPoints = 50;
-      const totalPoints = POINTS_PER_JOURNAL + mockBonusPoints;
-
-      // Update mock profile
-      const updatedProfile = {
-        ...MOCK_PROFILE,
-        points: MOCK_PROFILE.points + totalPoints,
-        current_streak: MOCK_PROFILE.current_streak + 1,
-        weekly_streak: MOCK_PROFILE.weekly_streak + 1,
-        monthly_streak: MOCK_PROFILE.monthly_streak + 1,
-        last_journal_date: new Date().toISOString(),
-      };
-
-      setUserProfile(updatedProfile);
-      setBonusPoints(mockBonusPoints);
-      setPointsEarned(totalPoints);
-      setShowCongratsModal(true);
-      setSuccess(true);
-
-      // Reset form
-      setMood("");
-      setReflection("");
-      setImages([]);
-      setImageUrls([]);
-
-      // Comment out actual Supabase operations
-      /*
-      // Calculate streak bonus points
-      const bonusPoints = await calculateStreakBonus(user.id, userProfile?.last_journal_date || null);
-      const totalPoints = POINTS_PER_JOURNAL + bonusPoints;
-
-      // Handle audio upload and transcription
-      let audioUrl = '';
-      let transcribedText = '';
-      if (audioBlob) {
-        const audioFileName = `${user.id}/${Date.now()}.webm`;
-        const { data: audioData, error: audioError } = await supabase.storage
-          .from('journal-audio')
-          .upload(audioFileName, audioBlob);
-        
-        if (audioError) throw audioError;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('journal-audio')
-          .getPublicUrl(audioFileName);
-          
-        audioUrl = publicUrl;
-      }
-
-      // Upload images
+      // Upload images first if there are any
       let uploadedImageUrls: string[] = [];
       if (images.length > 0) {
-        for (const image of images) {
-          const fileName = `${user.id}/${Date.now()}-${image.name}`;
-          const { data: imageData, error: imageError } = await supabase.storage
-            .from('journal-images')
-            .upload(fileName, image);
-            
-          if (imageError) throw imageError;
-          
-          const { data: { publicUrl } } = supabase.storage
-            .from('journal-images')
-            .getPublicUrl(fileName);
-            
-          uploadedImageUrls.push(publicUrl);
-        }
+        uploadedImageUrls = await uploadImages(images);
       }
 
-      // Insert journal entry
+      // Create journal entry with image URLs array
       const { data: journalEntry, error: journalError } = await supabase
         .from('journal_entries')
-        .insert([{
+        .insert({
           user_id: user.id,
           mood,
-          written_reflection: reflection || transcribedText,
-          image_urls: uploadedImageUrls,
-          audio_url: audioUrl,
-          transcription: transcribedText,
-        }])
+          written_reflection: reflection,
+          created_at: new Date().toISOString(),
+          image_urls: uploadedImageUrls // This will be an array of strings
+        })
         .select()
         .single();
 
       if (journalError) throw journalError;
 
-      // Update user's points and profile
+      // Handle streak logic
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const lastJournalDate = userProfile?.last_journal_date ? new Date(userProfile.last_journal_date) : null;
+      if (lastJournalDate) {
+        lastJournalDate.setHours(0, 0, 0, 0);
+      }
+
+      let newStreak = 1; // Default for first entry or broken streak
+      let newWeeklyStreak = 1; // Start or reset weekly streak
+      let bonus = 0;
+
+      if (lastJournalDate) {
+        const diffDays = Math.floor((today.getTime() - lastJournalDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 1) {
+          // Last entry was yesterday, increment streaks
+          newStreak = (userProfile?.current_streak || 0) + 1;
+          newWeeklyStreak = (userProfile?.weekly_streak || 0) + 1;
+          
+          // Calculate milestone bonuses
+          if (newStreak === 21) bonus = TWENTY_ONE_DAY_BONUS;
+          else if (newStreak === 48) bonus = FORTY_EIGHT_DAY_BONUS;
+          else if (newStreak % 30 === 0) bonus = MONTHLY_BONUS;
+          
+          // Add weekly bonus if applicable
+          if (newWeeklyStreak === 7) {
+            bonus += WEEKLY_BONUS;
+            newWeeklyStreak = 0; // Reset weekly streak after bonus
+          }
+        } else if (diffDays === 0) {
+          // Same day entry, keep current streaks
+          newStreak = userProfile?.current_streak || 1;
+          newWeeklyStreak = userProfile?.weekly_streak || 1;
+        } else {
+          // More than one day gap, reset weekly streak too
+          newWeeklyStreak = 1;
+        }
+      }
+
+      // Update profile with new streaks and points
+      const earnedPoints = POINTS_PER_JOURNAL + bonus;
       const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
-        .update({ 
-          points: (userProfile?.points || 0) + totalPoints,
-          last_journal_date: new Date().toISOString()
+        .update({
+          current_streak: newStreak,
+          weekly_streak: newWeeklyStreak,
+          last_journal_date: today.toISOString(),
+          points: (userProfile?.points || 0) + earnedPoints
         })
         .eq('id', user.id)
         .select()
@@ -484,14 +396,20 @@ export default function JournalPage() {
 
       // Update local state
       setUserProfile(updatedProfile);
-      setBonusPoints(bonusPoints);
-      setPointsEarned(totalPoints);
+      setPointsEarned(earnedPoints);
+      setBonusPoints(bonus);
       setShowCongratsModal(true);
+
+      // Reset form
+      setMood("");
+      setReflection("");
+      setImages([]); // Clear images array
+      setImageUrls([]); // Clear image URLs
       setSuccess(true);
-      */
-    } catch (err) {
-      console.error("Error submitting journal:", err);
-      setError(err instanceof Error ? err.message : "An error occurred");
+
+    } catch (error) {
+      console.error('Error submitting journal:', error);
+      setError(error instanceof Error ? error.message : 'Failed to submit journal entry');
     } finally {
       setLoading(false);
     }
@@ -512,27 +430,63 @@ export default function JournalPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 py-12">
-      {/* Add the CongratsModal component */}
-      <CongratsModal
-        isOpen={showCongratsModal}
-        onClose={handleCloseCongratsModal}
-        pointsEarned={pointsEarned}
-        totalPoints={userProfile?.points || 0}
-        bonusPoints={bonusPoints}
-      />
-      
-      <motion.div
-        className="container"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <motion.h1
-          className="text-4xl font-bold mb-8 text-gradient"
-          variants={itemVariants}
-        >
-          Daily Journal
-        </motion.h1>
+      <div className="container mx-auto px-4 max-w-4xl">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
+            Daily Journal
+          </h1>
+          <button
+            onClick={() => router.push('/journal/monthly')}
+            className="px-6 py-2 bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 text-purple-600 hover:text-purple-700 font-medium flex items-center gap-2"
+          >
+            <span>Monthly View</span>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Next Milestone Card */}
+        <motion.div className="bg-white rounded-lg shadow-lg p-6 mb-8" variants={itemVariants}>
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-xl font-semibold">Next Milestone</h2>
+            <p className="text-gray-600">
+              {userProfile?.current_streak || 0} / {
+                userProfile?.current_streak !== undefined ? (
+                  userProfile.current_streak < 21 ? 21 :
+                  userProfile.current_streak < 48 ? 48 :
+                  userProfile.current_streak < 100 ? 100 :
+                  userProfile.current_streak + (30 - (userProfile.current_streak % 30))
+                ) : 21
+              } days
+            </p>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+            <div 
+              className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500"
+              style={{ 
+                width: `${userProfile?.current_streak ? (
+                  (userProfile.current_streak / (
+                    userProfile.current_streak < 21 ? 21 :
+                    userProfile.current_streak < 48 ? 48 :
+                    userProfile.current_streak < 100 ? 100 :
+                    userProfile.current_streak + (30 - (userProfile.current_streak % 30))
+                  )) * 100
+                ) : 0}%` 
+              }}
+            ></div>
+          </div>
+          <p className="text-gray-600 text-sm">
+            {daysUntilMilestone} days until {
+              userProfile?.current_streak !== undefined ? (
+                userProfile.current_streak < 21 ? '21-day' :
+                userProfile.current_streak < 48 ? '48-day' :
+                userProfile.current_streak < 100 ? '100-day' :
+                'next monthly'
+              ) : '21-day'
+            } milestone
+          </p>
+        </motion.div>
 
         {userProfile && (
           <motion.div className="card mb-8" variants={itemVariants}>
@@ -837,7 +791,16 @@ export default function JournalPage() {
             </div>
           </motion.div>
         </motion.div>
-      </motion.div>
+      </div>
+
+      {/* Add the CongratsModal component */}
+      <CongratsModal
+        isOpen={showCongratsModal}
+        onClose={handleCloseCongratsModal}
+        pointsEarned={pointsEarned}
+        totalPoints={userProfile?.points || 0}
+        bonusPoints={bonusPoints}
+      />
     </div>
   );
 }
