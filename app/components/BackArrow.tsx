@@ -1,52 +1,34 @@
-'use client'
+"use client";
 
-import React from 'react'
-import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import React from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
 
 interface BackArrowProps {
-  href?: string
-  onClick?: () => void
-  className?: string
+  href: string;
 }
 
-export default function BackArrow({ href, onClick, className = '' }: BackArrowProps) {
-  const router = useRouter()
-  
-  const handleClick = () => {
-    if (onClick) {
-      onClick()
-    } else if (href) {
-      router.push(href)
-    } else {
-      router.back()
-    }
-  }
-
+export default function BackArrow({ href }: BackArrowProps) {
   return (
-    <motion.button
-      className={`fixed top-4 left-4 z-50 flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 shadow-md ${className}`}
-      onClick={handleClick}
-      whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 0.95 }}
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        className="h-6 w-6 text-white" 
-        fill="none" 
-        viewBox="0 0 24 24" 
-        stroke="currentColor"
+    <Link href={href}>
+      <motion.div
+        className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+        whileHover={{ x: -4 }}
       >
-        <path 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
-          strokeWidth={2} 
-          d="M10 19l-7-7m0 0l7-7m-7 7h18" 
-        />
-      </svg>
-    </motion.button>
-  )
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-5 w-5"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fillRule="evenodd"
+            d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+            clipRule="evenodd"
+          />
+        </svg>
+        <span>Back</span>
+      </motion.div>
+    </Link>
+  );
 } 

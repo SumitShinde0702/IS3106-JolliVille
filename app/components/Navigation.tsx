@@ -42,6 +42,12 @@ export default function Navigation() {
                   Village
                 </Link>
                 <Link
+                  href="/friends"
+                  className="px-3 py-2 hover:text-pink-600 transition-colors"
+                >
+                  Friends
+                </Link>
+                <Link
                   href="/journal"
                   className="px-3 py-2 hover:text-pink-600 transition-colors"
                 >
