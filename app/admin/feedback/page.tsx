@@ -62,7 +62,9 @@ export default function AdminFeedback() {
         setComplaints(data || []);
       } catch (err) {
         console.error("Error:", err);
-        setError(err instanceof Error ? err.message : "Failed to load complaints");
+        setError(
+          err instanceof Error ? err.message : "Failed to load complaints"
+        );
       } finally {
         setLoading(false);
       }
@@ -84,11 +86,17 @@ export default function AdminFeedback() {
 
         if (error) throw error;
 
-        setComplaints(complaints.map(complaint => 
-          complaint.id === id 
-            ? { ...complaint, status: "resolved", updated_at: new Date().toISOString() }
-            : complaint
-        ));
+        setComplaints(
+          complaints.map((complaint) =>
+            complaint.id === id
+              ? {
+                  ...complaint,
+                  status: "resolved",
+                  updated_at: new Date().toISOString(),
+                }
+              : complaint
+          )
+        );
         setResolvingId(null);
       } catch (err) {
         console.error("Error:", err);
@@ -116,19 +124,21 @@ export default function AdminFeedback() {
   if (error) return <div className="p-8 text-red-500">{error}</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+    <>
       <AdminNav />
-      <motion.div 
-        className="container mx-auto px-4 py-12"
+      <motion.div
+        className="p-8 space-y-8 bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 min-h-screen"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
         <motion.div variants={itemVariants}>
-          <h1 className="text-4xl font-bold mb-8 text-gradient">Feedback Management</h1>
+          <h1 className="text-4xl font-bold mb-8 text-gradient">
+            Feedback Management
+          </h1>
         </motion.div>
-        
-        <motion.div 
+
+        <motion.div
           className="bg-white/50 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden"
           variants={itemVariants}
         >
@@ -155,14 +165,21 @@ export default function AdminFeedback() {
               </thead>
               <tbody className="bg-white/30 divide-y divide-gray-200">
                 {complaints.map((complaint) => (
-                  <tr key={complaint.id} className="hover:bg-white/40 transition-colors">
+                  <tr
+                    key={complaint.id}
+                    className="hover:bg-white/40 transition-colors"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
                         {complaint.subject}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(complaint.status)}`}>
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
+                          complaint.status
+                        )}`}
+                      >
                         {complaint.status}
                       </span>
                     </td>
@@ -179,7 +196,7 @@ export default function AdminFeedback() {
                       >
                         View Details
                       </Link>
-                      {complaint.status !== 'resolved' && (
+                      {complaint.status !== "resolved" && (
                         <button
                           onClick={() => handleResolve(complaint.id)}
                           className={`${
@@ -188,7 +205,9 @@ export default function AdminFeedback() {
                               : "bg-pink-600 hover:bg-pink-700"
                           } text-white px-3 py-1 rounded-full text-xs transition-colors`}
                         >
-                          {resolvingId === complaint.id ? "Confirm Resolve" : "Resolve"}
+                          {resolvingId === complaint.id
+                            ? "Confirm Resolve"
+                            : "Resolve"}
                         </button>
                       )}
                     </td>
@@ -208,6 +227,6 @@ export default function AdminFeedback() {
           background-clip: text;
         }
       `}</style>
-    </div>
+    </>
   );
 }

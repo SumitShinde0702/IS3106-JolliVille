@@ -72,7 +72,7 @@ function AdminDashboard() {
     <>
       <AdminNav />
       <motion.div
-        className="p-8 space-y-8 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 min-h-screen"
+        className="p-8 space-y-8 bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 min-h-screen"
         variants={containerVariants}
         initial="hidden"
         animate="visible"

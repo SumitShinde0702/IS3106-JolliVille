@@ -39,7 +39,11 @@ const itemVariants = {
   },
 };
 
-export default function ComplaintDetail({ params }: { params: { id: string } }) {
+export default function ComplaintDetail({
+  params,
+}: {
+  params: { id: string };
+}) {
   const [complaint, setComplaint] = useState<Complaint | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,12 +65,14 @@ export default function ComplaintDetail({ params }: { params: { id: string } }) 
 
         const { data, error } = await supabase
           .from("complaints")
-          .select(`
+          .select(
+            `
             *,
             profiles (
               email
             )
-          `)
+          `
+          )
           .eq("id", params.id)
           .single();
 
@@ -78,7 +84,9 @@ export default function ComplaintDetail({ params }: { params: { id: string } }) 
         setResolutionNotes(data.resolution_notes || "");
       } catch (err) {
         console.error("Error:", err);
-        setError(err instanceof Error ? err.message : "Failed to load complaint");
+        setError(
+          err instanceof Error ? err.message : "Failed to load complaint"
+        );
       } finally {
         setLoading(false);
       }
@@ -101,13 +109,15 @@ export default function ComplaintDetail({ params }: { params: { id: string } }) 
 
       if (error) throw error;
 
-      setComplaint((prev) => 
-        prev ? {
-          ...prev,
-          status,
-          resolution_notes: resolutionNotes,
-          updated_at: new Date().toISOString(),
-        } : null
+      setComplaint((prev) =>
+        prev
+          ? {
+              ...prev,
+              status,
+              resolution_notes: resolutionNotes,
+              updated_at: new Date().toISOString(),
+            }
+          : null
       );
 
       alert("Complaint updated successfully!");
@@ -124,9 +134,9 @@ export default function ComplaintDetail({ params }: { params: { id: string } }) 
   if (!complaint) return <div className="p-8">Complaint not found</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+    <div className="p-8 space-y-8 bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 min-h-screen">
       <AdminNav />
-      <motion.div 
+      <motion.div
         className="container mx-auto px-4 py-12"
         variants={containerVariants}
         initial="hidden"
@@ -136,13 +146,15 @@ export default function ComplaintDetail({ params }: { params: { id: string } }) 
           <BackArrow href="/admin/feedback" />
         </motion.div>
 
-        <motion.div 
+        <motion.div
           className="bg-white/50 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden"
           variants={itemVariants}
         >
           <div className="p-8">
-            <h1 className="text-3xl font-bold mb-6 text-gradient">{complaint.subject}</h1>
-            
+            <h1 className="text-3xl font-bold mb-6 text-gradient">
+              {complaint.subject}
+            </h1>
+
             <div className="grid grid-cols-3 gap-6 mb-8">
               <div className="bg-white/50 p-4 rounded-lg">
                 <p className="text-sm text-gray-500">Created</p>
@@ -160,7 +172,7 @@ export default function ComplaintDetail({ params }: { params: { id: string } }) 
                 <p className="text-sm text-gray-500">Submitted By</p>
                 <div className="flex items-center gap-3">
                   <p className="text-sm font-medium">
-                    {complaint.profiles?.email || 'Unknown'}
+                    {complaint.profiles?.email || "Unknown"}
                   </p>
                   {complaint.profiles?.email && (
                     <a
@@ -238,4 +250,4 @@ export default function ComplaintDetail({ params }: { params: { id: string } }) 
       `}</style>
     </div>
   );
-} 
+}
