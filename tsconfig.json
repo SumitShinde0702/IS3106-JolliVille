@@ -2,6 +2,9 @@
   "compilerOptions": {
     "target": "es2017",
     "module": "commonjs",
+    "paths": {
+      "@/*": ["./*"] // this means @ points to the root of your project
+    },
     "lib": [
       "es2017",
       "esnext.asynciterable",

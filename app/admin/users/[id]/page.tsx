@@ -38,7 +38,11 @@ const itemVariants = {
   },
 };
 
-export default function UserDetailsPage({ params }: { params: { id: string } }) {
+export default function UserDetailsPage({
+  params,
+}: {
+  params: { id: string };
+}) {
   const [user, setUser] = useState<UserDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +87,7 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
       <AdminNav />
-      <motion.div 
+      <motion.div
         className="container mx-auto px-4 py-12"
         variants={containerVariants}
         initial="hidden"
@@ -93,15 +97,15 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
           <BackArrow href="/admin/users" />
         </motion.div>
 
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="bg-white/50 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden"
         >
           <div className="p-8">
             <div className="flex items-center gap-6 mb-8">
               {user.avatar_url ? (
-                <img 
-                  src={user.avatar_url} 
+                <img
+                  src={user.avatar_url}
                   alt={user.username}
                   className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
                 />
@@ -111,7 +115,9 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
                 </div>
               )}
               <div>
-                <h1 className="text-3xl font-bold text-gradient mb-2">{user.username}</h1>
+                <h1 className="text-3xl font-bold text-gradient mb-2">
+                  {user.username}
+                </h1>
                 <p className="text-gray-600">{user.email}</p>
               </div>
             </div>
@@ -122,18 +128,30 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-gray-500">Status</p>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                      ${user.status === 'active' ? 'bg-green-100 text-green-800' : 
-                        user.status === 'inactive' ? 'bg-gray-100 text-gray-800' : 
-                        'bg-yellow-100 text-yellow-800'}`}>
-                      {user.status || 'pending'}
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                      ${
+                        user.status === "active"
+                          ? "bg-green-100 text-green-800"
+                          : user.status === "inactive"
+                          ? "bg-gray-100 text-gray-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {user.status || "pending"}
                     </span>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Role</p>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                      ${user.admin ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
-                      {user.admin ? 'Admin' : 'User'}
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                      ${
+                        user.admin
+                          ? "bg-purple-100 text-purple-800"
+                          : "bg-blue-100 text-blue-800"
+                      }`}
+                    >
+                      {user.admin ? "Admin" : "User"}
                     </span>
                   </div>
                   <div>
@@ -148,22 +166,28 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-gray-500">Current Streak</p>
-                    <p className="font-medium">{user.current_streak || '0'} days</p>
+                    <p className="font-medium">
+                      {user.current_streak || "0"} days
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Weekly Streak</p>
-                    <p className="font-medium">{user.weekly_streak || '0'} weeks</p>
+                    <p className="font-medium">
+                      {user.weekly_streak || "0"} weeks
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Monthly Streak</p>
-                    <p className="font-medium">{user.monthly_streak || '0'} months</p>
+                    <p className="font-medium">
+                      {user.monthly_streak || "0"} months
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Last Journal Entry</p>
                     <p className="font-medium">
-                      {user.last_journal_date 
+                      {user.last_journal_date
                         ? new Date(user.last_journal_date).toLocaleDateString()
-                        : 'No entries yet'}
+                        : "No entries yet"}
                     </p>
                   </div>
                 </div>
@@ -189,4 +213,4 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
       `}</style>
     </div>
   );
-} 
+}
