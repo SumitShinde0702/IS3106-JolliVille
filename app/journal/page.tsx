@@ -120,6 +120,7 @@ function JournalPage() {
   const [showCongratsModal, setShowCongratsModal] = useState(false);
   const [pointsEarned, setPointsEarned] = useState(0);
   const [daysUntilMilestone, setDaysUntilMilestone] = useState(0);
+  const [isFinal, setIsFinal] = useState(false);
   const supabase = createClientComponentClient();
   const router = useRouter();
 
@@ -134,27 +135,54 @@ function JournalPage() {
       window.webkitSpeechRecognition)();
     recognition.continuous = true;
     recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
 
     recognition.onresult = (event: { resultIndex: number; results: any }) => {
-      let transcript = "";
+      let interimTranscript = '';
+      let finalTranscript = '';
+
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript;
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+          setIsFinal(true);
+        } else {
+          interimTranscript += transcript;
+        }
       }
-      setReflection(transcript);
+
+      // Only update the reflection when we have final results
+      if (finalTranscript) {
+        setReflection(prevReflection => {
+          // Clean up any double spaces and ensure proper spacing
+          const cleanedPrev = prevReflection.replace(/\s+/g, ' ').trim();
+          const cleanedNew = finalTranscript.replace(/\s+/g, ' ').trim();
+          
+          // Add a single space only if both strings are non-empty
+          const separator = cleanedPrev && cleanedNew ? ' ' : '';
+          
+          return (cleanedPrev + separator + cleanedNew).trim();
+        });
+      }
     };
 
     recognition.onerror = (event: { error: any }) => {
       console.error("Speech recognition error", event.error);
-      setError("Speech recognition error occurred. Please try again.");
+      if (event.error !== 'no-speech') { // Don't show error for natural pauses
+        setError("Speech recognition error occurred. Please try again.");
+      }
       setIsRecording(false);
     };
 
-    recognition.onaudioend = () => {
-      setIsRecording(false);
+    recognition.onend = () => {
+      if (isRecording) {
+        // Automatically restart recognition if still recording
+        recognition.start();
+      }
     };
 
     window.recognition = recognition;
-  }, []);
+  }, [isRecording]);
 
   // Handle recording button click
   const handleRecordButtonClick = () => {
